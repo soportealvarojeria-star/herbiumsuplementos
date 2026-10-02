@@ -1,0 +1,405 @@
+---
+import { createClient } from '@supabase/supabase-js';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
+const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || '';
+
+let productos = [];
+
+// Conexión a la base de datos
+if (supabaseUrl && supabaseKey) {
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const { data, error } = await supabase
+    .from('productos')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (data) {
+    productos = data;
+  }
+}
+---
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Herbium | Botánica Contemporánea</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <script is:inline src="https://cdn.tailwindcss.com"></script>
+    <script is:inline>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Jost', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    
+    <style>
+      #cart-dialog {
+        border: none;
+        margin: 0 0 0 auto;
+        padding: 0;
+        height: 100dvh;
+        max-height: 100dvh;
+        width: 100%;
+        max-width: 28rem;
+        background-color: #F4F1EA;
+        box-shadow: -20px 0 50px -10px rgba(0, 0, 0, 0.15);
+        outline: none;
+      }
+      #cart-dialog::backdrop {
+        background-color: rgba(26, 26, 26, 0.5);
+        backdrop-filter: blur(4px);
+      }
+      select {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+      }
+    </style>
+  </head>
+  
+  <body class="bg-[#F4F1EA] text-[#1A1A1A] antialiased selection:bg-[#1E3A2F] selection:text-[#F4F1EA]">
+    
+    <Header />
+    <Hero />
+
+    <section id="catalogo" class="w-full bg-white border-t border-[#1A1A1A]/10 py-20">
+      <div class="max-w-[90rem] mx-auto px-6 lg:px-8">
+        
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-12 gap-6">
+          <div>
+            <h3 class="text-3xl text-[#1A1A1A] font-medium mb-2">Nuestra Colección</h3>
+            <span class="text-[11px] font-medium uppercase tracking-[0.2em] text-[#1A1A1A]/50">Todos los productos ({productos.length})</span>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-4 w-full lg:w-auto">
+            <div class="relative">
+              <select class="bg-[#F9F8F6] pr-10 pl-5 py-3 rounded-sm border border-[#1A1A1A]/10 hover:border-[#1E3A2F]/50 text-[11px] font-medium uppercase tracking-[0.1em] text-[#1A1A1A] cursor-pointer outline-none transition-colors">
+                <option>Todas las Categorías</option>
+                <option>Adaptógenos</option>
+                <option>Hongos Funcionales</option>
+                <option>Minerales</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#1A1A1A]/50">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </div>
+            </div>
+
+            <div class="relative">
+              <select class="bg-[#F9F8F6] pr-10 pl-5 py-3 rounded-sm border border-[#1A1A1A]/10 hover:border-[#1E3A2F]/50 text-[11px] font-medium uppercase tracking-[0.1em] text-[#1A1A1A] cursor-pointer outline-none transition-colors">
+                <option>Destacados</option>
+                <option>Precio: Menor a Mayor</option>
+                <option>Precio: Mayor a Menor</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#1A1A1A]/50">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </div>
+            </div>
+
+            <div class="flex gap-1 bg-[#F9F8F6] p-1 rounded-sm border border-[#1A1A1A]/10 ml-auto lg:ml-4">
+              <button id="btn-grid" class="p-2 bg-white shadow-sm rounded-sm text-[#1E3A2F] transition-all cursor-pointer" title="Vista Cuadrícula">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              </button>
+              <button id="btn-list" class="p-2 text-[#1A1A1A]/40 hover:text-[#1E3A2F] transition-all cursor-pointer" title="Vista Lista">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="product-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+          
+          {productos.length === 0 ? (
+            <div class="col-span-full py-20 text-center text-[#1A1A1A]/50 uppercase tracking-widest text-xs">
+              Conectando inventario...
+            </div>
+          ) : (
+            productos.map((producto) => (
+              <article class="product-card group relative bg-white border border-[#1A1A1A]/10 rounded-xl overflow-hidden shadow-[0_2px_15px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition-all duration-300 flex flex-col">
+                <div class="card-img-wrap w-full aspect-[4/5] bg-[#F4F1EA] relative flex items-center justify-center overflow-hidden">
+                  {producto.imagen_url ? (
+                    <img src={producto.imagen_url} alt={producto.nombre} class="w-full h-full object-cover mix-blend-multiply transition-transform duration-700 group-hover:scale-105" />
+                  ) : (
+                    <span class="text-[#1A1A1A]/30 text-xs font-medium tracking-[0.2em] uppercase text-center">Sin Foto</span>
+                  )}
+                  
+                  {/* LÓGICA DE STOCK: Evalúa si hay unidades y le pasa el stock máximo al botón */}
+                  {producto.stock > 0 ? (
+                    <button class="btn-add-to-cart absolute bottom-4 left-4 right-4 bg-[#1E3A2F] text-white py-3 rounded-sm text-center text-[11px] uppercase tracking-[0.2em] font-medium opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-md hover:bg-[#1A1A1A]" 
+                            data-name={producto.nombre} 
+                            data-price={producto.precio} 
+                            data-image={producto.imagen_url || ''}
+                            data-stock={producto.stock}>
+                     Añadir al Carro
+                    </button>
+                  ) : (
+                    <div class="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm text-[#1A1A1A]/40 py-3 rounded-sm text-center text-[11px] uppercase tracking-[0.2em] font-medium shadow-sm border border-[#1A1A1A]/10 cursor-not-allowed">
+                      Agotado
+                    </div>
+                  )}
+                  
+                </div>
+                <div class="card-info-wrap p-5 flex flex-col flex-1 text-left border-t border-[#1A1A1A]/5">
+                  <span class="text-[10px] text-[#C17767] uppercase tracking-[0.2em] mb-2 font-medium">{producto.categoria}</span>
+                  <h4 class="text-lg text-[#1A1A1A] font-medium mb-1">{producto.nombre}</h4>
+                  <span class="text-[#1E3A2F] font-semibold mt-auto pt-4">${producto.precio.toLocaleString('es-CL')}</span>
+                </div>
+              </article>
+            ))
+          )}
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal del Carrito -->
+    <dialog id="cart-dialog" class="flex-col">
+      <div class="px-8 py-6 border-b border-[#1A1A1A]/10 flex justify-between items-center bg-white flex-shrink-0">
+        <h2 class="text-2xl text-[#1E3A2F] font-medium">Tu Selección</h2>
+        <button id="btn-close-cart" class="text-xs uppercase tracking-widest text-[#1A1A1A]/50 hover:text-[#C17767] transition-all cursor-pointer">
+          Cerrar ✕
+        </button>
+      </div>
+
+      <div id="cart-items-list" class="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-[#F9F8F6]">
+        <!-- Los ítems se generarán aquí con Javascript -->
+      </div>
+
+      <div class="p-8 border-t border-[#1A1A1A]/10 bg-white flex-shrink-0 shadow-[0_-5px_15px_rgba(0,0,0,0.02)]">
+        <div class="flex justify-between items-center mb-6">
+          <span class="text-xs uppercase tracking-[0.2em] font-medium text-[#1A1A1A]">Subtotal</span>
+          <span id="cart-subtotal" class="font-medium text-2xl text-[#1E3A2F]">$0</span>
+        </div>
+        <button class="w-full bg-[#1E3A2F] text-white py-4 rounded-sm text-xs font-medium uppercase tracking-[0.2em] hover:bg-[#1A1A1A] transition-colors cursor-pointer">
+          Proceder al Pago
+        </button>
+      </div>
+    </dialog>
+
+    <script>
+      // 1. Lógica de Vistas (Cuadrícula / Lista)
+      const btnGrid = document.getElementById('btn-grid');
+      const btnList = document.getElementById('btn-list');
+      const container = document.getElementById('product-container');
+      
+      if(btnGrid && btnList && container) {
+        btnGrid.addEventListener('click', () => {
+          btnGrid.classList.add('bg-white', 'shadow-sm', 'text-[#1E3A2F]');
+          btnGrid.classList.remove('text-[#1A1A1A]/40');
+          btnList.classList.remove('bg-white', 'shadow-sm', 'text-[#1E3A2F]');
+          btnList.classList.add('text-[#1A1A1A]/40');
+          container.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8';
+          const articles = document.querySelectorAll('.product-card');
+          const imgWraps = document.querySelectorAll('.card-img-wrap');
+          const infoWraps = document.querySelectorAll('.card-info-wrap');
+          articles.forEach(art => art.classList.replace('flex-row', 'flex-col'));
+          articles.forEach(art => art.classList.remove('items-center'));
+          imgWraps.forEach(wrap => wrap.className = 'card-img-wrap w-full aspect-[4/5] bg-[#F4F1EA] relative flex items-center justify-center overflow-hidden');
+          infoWraps.forEach(wrap => wrap.className = 'card-info-wrap p-5 flex flex-col flex-1 text-left border-t border-[#1A1A1A]/5');
+        });
+
+        btnList.addEventListener('click', () => {
+          btnList.classList.add('bg-white', 'shadow-sm', 'text-[#1E3A2F]');
+          btnList.classList.remove('text-[#1A1A1A]/40');
+          btnGrid.classList.remove('bg-white', 'shadow-sm', 'text-[#1E3A2F]');
+          btnGrid.classList.add('text-[#1A1A1A]/40');
+          container.className = 'flex flex-col gap-4 w-full max-w-4xl mx-auto';
+          const articles = document.querySelectorAll('.product-card');
+          const imgWraps = document.querySelectorAll('.card-img-wrap');
+          const infoWraps = document.querySelectorAll('.card-info-wrap');
+          articles.forEach(art => art.classList.replace('flex-col', 'flex-row'));
+          articles.forEach(art => art.classList.add('items-center'));
+          imgWraps.forEach(wrap => wrap.className = 'card-img-wrap w-32 md:w-48 aspect-square bg-[#F4F1EA] relative flex flex-shrink-0 items-center justify-center border-r border-[#1A1A1A]/5 overflow-hidden');
+          infoWraps.forEach(wrap => wrap.className = 'card-info-wrap p-6 md:px-10 flex flex-col flex-1 text-left justify-center');
+        });
+      }
+
+      // 2. LÓGICA DEL CARRITO (Estado, Agrupación, y Cantidades)
+      const dialog = document.getElementById('cart-dialog');
+      const headerCartBtn = document.getElementById('header-cart-btn');
+      const cartItemsList = document.getElementById('cart-items-list');
+      const cartSubtotal = document.getElementById('cart-subtotal');
+      const closeBtn = document.getElementById('btn-close-cart');
+
+      if(dialog) dialog.style.display = 'none';
+
+      // Memoria del carrito
+      let cartState = {}; 
+
+      function renderCart() {
+        if(!cartItemsList) return;
+
+        const emptyMsgHTML = `<div class="flex h-full items-center justify-center text-xs text-[#1A1A1A]/40 font-medium uppercase tracking-[0.2em]">Tu selección está vacía.</div>`;
+        const productNames = Object.keys(cartState);
+
+        let totalItems = 0;
+        let totalPrice = 0;
+        let html = '';
+
+        if (productNames.length === 0) {
+          cartItemsList.innerHTML = emptyMsgHTML;
+        } else {
+          productNames.forEach(name => {
+            const item = cartState[name];
+            totalItems += item.quantity;
+            totalPrice += item.price * item.quantity;
+            
+            const priceFormatted = item.price.toLocaleString('es-CL');
+            
+            const imageHTML = item.image 
+              ? `<img src="${item.image}" alt="${name}" class="w-full h-full object-cover mix-blend-multiply" />`
+              : `<span class="text-[#1A1A1A]/30 text-[8px] font-medium tracking-widest uppercase">Foto</span>`;
+            
+            const badgeHTML = item.quantity > 1 
+              ? `<span class="absolute -top-2 -right-2 bg-[#1E3A2F] text-white text-[9px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-md border-2 border-[#F9F8F6] z-10">${item.quantity}</span>` 
+              : '';
+
+            // Deshabilitar visualmente el botón + si ya alcanzó el máximo stock
+            const isAtMaxStock = item.quantity >= item.maxStock;
+            const plusBtnClass = isAtMaxStock 
+              ? "text-[#1A1A1A]/20 cursor-not-allowed" 
+              : "text-[#1A1A1A]/60 hover:text-[#1A1A1A] transition-colors cursor-pointer";
+
+            html += `
+              <div class="flex gap-4 cart-item bg-white p-4 rounded-md shadow-sm border border-[#1A1A1A]/5">
+                <div class="w-16 h-20 bg-[#F4F1EA] rounded-sm flex-shrink-0 flex items-center justify-center border border-[#1A1A1A]/5 relative overflow-visible">
+                  <div class="w-full h-full overflow-hidden rounded-sm flex items-center justify-center">
+                    ${imageHTML}
+                  </div>
+                  ${badgeHTML}
+                </div>
+                
+                <div class="flex-1 flex flex-col justify-center py-1">
+                  <h4 class="text-[#1A1A1A] font-medium text-sm leading-tight mb-1">${name}</h4>
+                  <p class="text-xs text-[#1A1A1A]/60 font-medium mb-3">$${priceFormatted} c/u</p>
+                  
+                  <div class="flex items-center justify-between mt-auto">
+                    <!-- Selector de cantidad (+ y -) -->
+                    <div class="flex items-center border border-[#1A1A1A]/10 bg-[#F9F8F6] rounded-sm shadow-sm">
+                      <button class="btn-decrease-qty px-2.5 py-1 text-[#1A1A1A]/60 hover:text-[#C17767] transition-colors cursor-pointer" data-name="${name}">-</button>
+                      <span class="text-[11px] font-medium w-5 text-center text-[#1A1A1A]">${item.quantity}</span>
+                      <button class="btn-increase-qty px-2.5 py-1 ${plusBtnClass}" data-name="${name}">+</button>
+                    </div>
+                    
+                    <button class="btn-remove-item w-fit text-left text-[10px] font-medium uppercase tracking-[0.2em] text-[#C17767] hover:text-[#1A1A1A] transition-colors cursor-pointer" data-name="${name}">
+                      Remover
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+            `;
+          });
+          cartItemsList.innerHTML = html;
+        }
+
+        if (headerCartBtn) headerCartBtn.innerText = `Carrito (${totalItems})`;
+        if (cartSubtotal) cartSubtotal.innerText = '$' + totalPrice.toLocaleString('es-CL');
+      }
+
+      // 3. Delegación de todos los eventos de clics del carrito
+      document.addEventListener('click', (e) => {
+        
+        // EVENTO: Añadir al carro desde el catálogo
+        if (e.target && e.target.classList.contains('btn-add-to-cart')) {
+          const name = e.target.getAttribute('data-name');
+          const price = parseInt(e.target.getAttribute('data-price'));
+          const image = e.target.getAttribute('data-image');
+          const maxStock = parseInt(e.target.getAttribute('data-stock'));
+
+          if (cartState[name]) {
+            if (cartState[name].quantity < cartState[name].maxStock) {
+              cartState[name].quantity += 1;
+            }
+          } else {
+            cartState[name] = { price: price, image: image, quantity: 1, maxStock: maxStock };
+          }
+
+          renderCart();
+          
+          if(dialog) {
+            dialog.style.display = 'flex';
+            dialog.showModal();
+          }
+        }
+
+        // EVENTO: Aumentar cantidad (+)
+        if (e.target && e.target.classList.contains('btn-increase-qty')) {
+          const name = e.target.getAttribute('data-name');
+          if (cartState[name]) {
+            if (cartState[name].quantity < cartState[name].maxStock) {
+              cartState[name].quantity += 1;
+              renderCart();
+            }
+          }
+        }
+
+        // EVENTO: Disminuir cantidad (-)
+        if (e.target && e.target.classList.contains('btn-decrease-qty')) {
+          const name = e.target.getAttribute('data-name');
+          if (cartState[name]) {
+            cartState[name].quantity -= 1;
+            // Si la cantidad llega a 0, se elimina del carrito
+            if (cartState[name].quantity <= 0) {
+              delete cartState[name];
+            }
+            renderCart();
+          }
+        }
+
+        // EVENTO: Remover ítem completo
+        if (e.target && e.target.classList.contains('btn-remove-item')) {
+          const name = e.target.getAttribute('data-name');
+          delete cartState[name];
+          renderCart();
+        }
+      });
+
+      // Controles de la ventana modal
+      if(headerCartBtn) {
+        headerCartBtn.addEventListener('click', () => {
+          if(dialog) {
+            dialog.style.display = 'flex';
+            dialog.showModal();
+          }
+        });
+      }
+
+      if(closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          if(dialog) {
+            dialog.close();
+            dialog.style.display = 'none';
+          }
+        });
+      }
+      
+      if(dialog) {
+        dialog.addEventListener('click', (e) => {
+          const rect = dialog.getBoundingClientRect();
+          const isInDialog = (
+            rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+            rect.left <= e.clientX && e.clientX <= rect.left + rect.width
+          );
+          if (!isInDialog) {
+              dialog.close();
+              dialog.style.display = 'none';
+          }
+        });
+      }
+
+      renderCart();
+    </script>
+  </body>
+</html>
