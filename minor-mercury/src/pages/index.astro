@@ -11,43 +11,38 @@ let productosCarrusel = [];
 let count = 0;
 let totalPages = 1;
 
-// 1. CAPTURAR PARÁMETROS DE LA URL
+// 1. CAPTURAR PARÁMETROS
 const page = Number(Astro.url.searchParams.get('page')) || 1;
 const categoria = Astro.url.searchParams.get('categoria') || '';
 const orden = Astro.url.searchParams.get('orden') || 'destacados';
 
-// 2. CONFIGURAR LA PAGINACIÓN (9 productos por página para que encaje en 3 columnas)
+// 2. CONFIGURAR LA PAGINACIÓN
 const limit = 9;
 const start = (page - 1) * limit;
 const end = start + limit - 1;
 
-// Conexión a la base de datos
 if (supabaseUrl && supabaseKey) {
   const supabase = createClient(supabaseUrl, supabaseKey);
   
-  // --- CONSULTA A: CARRUSEL DESTACADOS ---
-  const { data: carruselData } = await supabase
-    .from('productos')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(8); 
-    
-  if (carruselData) productosCarrusel = carruselData;
+  // ALGORITMO CARRUSEL
+  const { data: carruselData } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).limit(40); 
+  if (carruselData) {
+    const bestSellersKeywords = ['ashwagandha', 'magnesio', 'melena', 'yacón', 'yacon', 'maca', 'colágeno', 'colageno', 'shilajit', 'prost', 'tizana', 'ulgrf'];
+    productosCarrusel = carruselData.sort((a, b) => {
+      const aEs = bestSellersKeywords.some(kw => a.nombre.toLowerCase().includes(kw));
+      const bEs = bestSellersKeywords.some(kw => b.nombre.toLowerCase().includes(kw));
+      if (aEs && !bEs) return -1;
+      if (!aEs && bEs) return 1;
+      return 0; 
+    }).slice(0, 8); 
+  }
 
-  // --- CONSULTA B: CATÁLOGO PAGINADO ---
+  // CONSULTA CATÁLOGO
   let query = supabase.from('productos').select('*', { count: 'exact' });
-
-  if (categoria) {
-    query = query.eq('categoria', categoria);
-  }
-
-  if (orden === 'precio-asc') {
-    query = query.order('precio', { ascending: true });
-  } else if (orden === 'precio-desc') {
-    query = query.order('precio', { ascending: false });
-  } else {
-    query = query.order('created_at', { ascending: false }); 
-  }
+  if (categoria) query = query.eq('categoria', categoria);
+  if (orden === 'precio-asc') query = query.order('precio', { ascending: true });
+  else if (orden === 'precio-desc') query = query.order('precio', { ascending: false });
+  else query = query.order('created_at', { ascending: false }); 
 
   query = query.range(start, end);
   const { data, count: totalCount } = await query;
@@ -65,7 +60,6 @@ const getFilterUrl = (newCategoria, newOrden) => {
   if (newOrden && newOrden !== 'destacados') params.set('orden', newOrden);
   return `/?${params.toString()}#catalogo`; 
 }
-
 const getPageUrl = (newPage) => {
   const params = new URLSearchParams();
   if (newPage > 1) params.set('page', newPage);
@@ -80,48 +74,43 @@ const getPageUrl = (newPage) => {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Herbium | Botánica Contemporánea</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
-    
     <script is:inline src="https://cdn.tailwindcss.com"></script>
     <script is:inline>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: { sans: ['Jost', 'sans-serif'] }
-          }
-        }
-      }
+      tailwind.config = { theme: { extend: { fontFamily: { sans: ['Jost', 'sans-serif'] } } } }
     </script>
     
     <style>
       #cart-dialog {
-        border: none;
-        margin: 0 0 0 auto;
-        padding: 0;
-        height: 100dvh;
-        max-height: 100dvh;
-        width: 100%;
-        max-width: 28rem;
-        background-color: #F4F1EA;
-        box-shadow: -20px 0 50px -10px rgba(0, 0, 0, 0.15);
-        outline: none;
+        border: none; margin: 0 0 0 auto; padding: 0; height: 100dvh; max-height: 100dvh; width: 100%; max-width: 28rem; background-color: #F4F1EA; box-shadow: -20px 0 50px -10px rgba(0,0,0,0.15); outline: none;
       }
-      #cart-dialog::backdrop {
-        background-color: rgba(26, 26, 26, 0.5);
-        backdrop-filter: blur(4px);
-      }
-      select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-      }
+      #cart-dialog::backdrop { background-color: rgba(26,26,26,0.5); backdrop-filter: blur(4px); }
+      select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
       html { scroll-behavior: smooth; }
-      
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+      /* ====== REGLAS NUCLEARES INDESTRUCTIBLES ====== */
+      .caja-nuclear {
+        width: 100% !important;
+        aspect-ratio: 1 / 1 !important;
+        background-color: #F4F1EA !important;
+        position: relative !important;
+        overflow: hidden !important;
+        display: block !important;
+        padding: 0 !important;
+      }
+      .imagen-nuclear {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        object-position: center !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
     </style>
   </head>
   
@@ -130,41 +119,30 @@ const getPageUrl = (newPage) => {
     <Header />
     <Hero />
 
-    <!-- SECCIÓN: CARRUSEL DESTACADOS -->
+    <!-- CARRUSEL -->
     <section class="w-full bg-white pt-16 pb-12 border-t border-[#1A1A1A]/10 overflow-hidden">
       <div class="max-w-[90rem] mx-auto px-6 lg:px-8 mb-6">
         <h3 class="text-xl md:text-2xl text-[#1A1A1A] font-medium">Elegidos para ti</h3>
       </div>
-      
       <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 px-6 lg:px-8 pb-8 no-scrollbar max-w-[90rem] mx-auto">
         {productosCarrusel.map((producto) => (
-          <article class="snap-start flex-shrink-0 w-[240px] md:w-[280px] product-card group relative bg-white border border-[#1A1A1A]/10 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
+          <article class="snap-start flex-shrink-0 w-[240px] md:w-[280px] product-card group bg-white border border-[#1A1A1A]/10 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
             
-            <!-- CAJA CARRUSEL: aspect-square para ser compacta, object-cover y object-center para llenar y centrar el frasco -->
-            <div class="w-full aspect-square bg-[#F4F1EA] relative flex items-center justify-center overflow-hidden">
+            <div class="caja-nuclear">
               {producto.imagen_url ? (
-                <img src={producto.imagen_url} alt={producto.nombre} class="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105" />
+                <img src={producto.imagen_url} alt={producto.nombre} class="imagen-nuclear transition-transform duration-700 group-hover:scale-105" />
               ) : (
-                <span class="text-[#1A1A1A]/30 text-[10px] font-medium tracking-[0.2em] uppercase text-center">Sin Foto</span>
+                <span class="absolute inset-0 flex items-center justify-center text-[#1A1A1A]/30 text-[10px] font-medium tracking-[0.2em] uppercase text-center">Sin Foto</span>
               )}
             </div>
             
             <div class="p-4 flex flex-col flex-1 text-left border-t border-[#1A1A1A]/5 bg-white">
               <h4 class="text-sm text-[#1A1A1A] font-medium mb-1 truncate">{producto.nombre}</h4>
               <span class="text-base text-[#1E3A2F] font-semibold mb-3">${producto.precio.toLocaleString('es-CL')}</span>
-              
               {producto.stock > 0 ? (
-                <button class="btn-add-to-cart w-full mt-auto bg-white border border-[#1E3A2F] text-[#1E3A2F] py-2.5 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold hover:bg-[#1E3A2F] hover:text-white transition-all cursor-pointer" 
-                        data-name={producto.nombre} 
-                        data-price={producto.precio} 
-                        data-image={producto.imagen_url || ''}
-                        data-stock={producto.stock}>
-                 Agregar
-                </button>
+                <button class="btn-add-to-cart w-full mt-auto bg-white border border-[#1E3A2F] text-[#1E3A2F] py-2.5 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold hover:bg-[#1E3A2F] hover:text-white transition-all cursor-pointer" data-name={producto.nombre} data-price={producto.precio} data-image={producto.imagen_url || ''} data-stock={producto.stock}>Agregar</button>
               ) : (
-                <div class="w-full mt-auto bg-gray-100 text-[#1A1A1A]/40 py-2.5 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold cursor-not-allowed">
-                  Agotado
-                </div>
+                <div class="w-full mt-auto bg-gray-100 text-[#1A1A1A]/40 py-2.5 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold cursor-not-allowed">Agotado</div>
               )}
             </div>
           </article>
@@ -172,7 +150,7 @@ const getPageUrl = (newPage) => {
       </div>
     </section>
 
-    <!-- SECCIÓN: CATÁLOGO (SIDEBAR + GRID) -->
+    <!-- CATÁLOGO -->
     <section id="catalogo" class="w-full bg-[#F9F8F6] py-20 border-t border-[#1A1A1A]/5">
       <div class="max-w-[90rem] mx-auto px-6 lg:px-8 flex flex-col lg:flex-row gap-10">
         
@@ -180,41 +158,12 @@ const getPageUrl = (newPage) => {
           <div class="bg-white p-6 rounded-xl border border-[#1A1A1A]/5 shadow-[0_5px_15px_rgba(0,0,0,0.02)]">
             <h4 class="text-[11px] font-bold uppercase tracking-widest mb-6 text-[#1A1A1A]">Categorías</h4>
             <ul class="space-y-4">
-              <li>
-                <a href={getFilterUrl('', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === '' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}>
-                  <div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === '' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}>
-                    <div class={`w-1.5 h-1.5 rounded-full ${categoria === '' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div>
-                  </div>
-                  Todas las Categorías
-                </a>
-              </li>
-              <li>
-                <a href={getFilterUrl('Adaptógenos', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === 'Adaptógenos' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}>
-                  <div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === 'Adaptógenos' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}>
-                    <div class={`w-1.5 h-1.5 rounded-full ${categoria === 'Adaptógenos' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div>
-                  </div>
-                  Adaptógenos
-                </a>
-              </li>
-              <li>
-                <a href={getFilterUrl('Hongos Funcionales', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === 'Hongos Funcionales' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}>
-                  <div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === 'Hongos Funcionales' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}>
-                    <div class={`w-1.5 h-1.5 rounded-full ${categoria === 'Hongos Funcionales' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div>
-                  </div>
-                  Hongos Funcionales
-                </a>
-              </li>
-              <li>
-                <a href={getFilterUrl('Minerales', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === 'Minerales' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}>
-                  <div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === 'Minerales' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}>
-                    <div class={`w-1.5 h-1.5 rounded-full ${categoria === 'Minerales' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div>
-                  </div>
-                  Minerales
-                </a>
-              </li>
+              <li><a href={getFilterUrl('', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === '' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}><div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === '' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}><div class={`w-1.5 h-1.5 rounded-full ${categoria === '' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div></div>Todas las Categorías</a></li>
+              <li><a href={getFilterUrl('Adaptógenos', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === 'Adaptógenos' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}><div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === 'Adaptógenos' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}><div class={`w-1.5 h-1.5 rounded-full ${categoria === 'Adaptógenos' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div></div>Adaptógenos</a></li>
+              <li><a href={getFilterUrl('Hongos Funcionales', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === 'Hongos Funcionales' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}><div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === 'Hongos Funcionales' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}><div class={`w-1.5 h-1.5 rounded-full ${categoria === 'Hongos Funcionales' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div></div>Hongos Funcionales</a></li>
+              <li><a href={getFilterUrl('Minerales', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === 'Minerales' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}><div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === 'Minerales' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}><div class={`w-1.5 h-1.5 rounded-full ${categoria === 'Minerales' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div></div>Minerales</a></li>
             </ul>
           </div>
-
           <div class="bg-white p-6 rounded-xl border border-[#1A1A1A]/5 shadow-[0_5px_15px_rgba(0,0,0,0.02)]">
             <h4 class="text-[11px] font-bold uppercase tracking-widest mb-4 text-[#1A1A1A]">Ordenar Por</h4>
             <div class="relative">
@@ -223,9 +172,7 @@ const getPageUrl = (newPage) => {
                 <option value={getFilterUrl(categoria, 'precio-asc')} selected={orden === 'precio-asc'}>Menor Precio</option>
                 <option value={getFilterUrl(categoria, 'precio-desc')} selected={orden === 'precio-desc'}>Mayor Precio</option>
               </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#1A1A1A]/50">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-              </div>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#1A1A1A]/50"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
             </div>
           </div>
         </aside>
@@ -233,26 +180,21 @@ const getPageUrl = (newPage) => {
         <div class="w-full lg:w-3/4">
           <div class="flex justify-between items-center mb-8 pb-4 border-b border-[#1A1A1A]/10">
             <h3 class="text-xl md:text-2xl text-[#1A1A1A] font-medium">Catálogo</h3>
-            <span class="text-[11px] font-medium uppercase tracking-widest text-[#1A1A1A]/50">
-              Mostrando {productos.length} resultados
-            </span>
+            <span class="text-[11px] font-medium uppercase tracking-widest text-[#1A1A1A]/50">Mostrando {productos.length} resultados</span>
           </div>
 
           <div id="product-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {productos.length === 0 ? (
-              <div class="col-span-full py-20 text-center flex flex-col items-center justify-center bg-white rounded-xl border border-[#1A1A1A]/5">
-                <span class="text-[#1A1A1A]/50 uppercase tracking-widest text-xs font-medium">No se encontraron productos</span>
-              </div>
+              <div class="col-span-full py-20 text-center flex flex-col items-center justify-center bg-white rounded-xl border border-[#1A1A1A]/5"><span class="text-[#1A1A1A]/50 uppercase tracking-widest text-xs font-medium">No se encontraron productos</span></div>
             ) : (
               productos.map((producto) => (
-                <article class="product-card group relative bg-white border border-[#1A1A1A]/5 rounded-xl overflow-hidden shadow-sm hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)] transition-all duration-300 flex flex-col">
+                <article class="product-card group bg-white border border-[#1A1A1A]/5 rounded-xl overflow-hidden shadow-sm hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)] transition-all duration-300 flex flex-col">
                   
-                  <!-- CAJA CATÁLOGO: aspect-square para que sea compacta y cuadrada, con object-cover object-center -->
-                  <div class="card-img-wrap w-full aspect-square bg-[#F4F1EA] relative flex items-center justify-center overflow-hidden">
+                  <div class="caja-nuclear">
                     {producto.imagen_url ? (
-                      <img src={producto.imagen_url} alt={producto.nombre} class="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105" />
+                      <img src={producto.imagen_url} alt={producto.nombre} class="imagen-nuclear transition-transform duration-700 group-hover:scale-105" />
                     ) : (
-                      <span class="text-[#1A1A1A]/30 text-xs font-medium tracking-[0.2em] uppercase text-center">Sin Foto</span>
+                      <span class="absolute inset-0 flex items-center justify-center text-[#1A1A1A]/30 text-xs font-medium tracking-[0.2em] uppercase text-center">Sin Foto</span>
                     )}
                   </div>
                   
@@ -260,39 +202,21 @@ const getPageUrl = (newPage) => {
                     <span class="text-[10px] text-[#C17767] uppercase tracking-[0.2em] mb-2 font-medium">{producto.categoria}</span>
                     <h4 class="text-base text-[#1A1A1A] font-medium mb-1 line-clamp-2">{producto.nombre}</h4>
                     <span class="text-lg text-[#1E3A2F] font-semibold mt-auto pt-3 pb-4">${producto.precio.toLocaleString('es-CL')}</span>
-                    
                     {producto.stock > 0 ? (
-                      <button class="btn-add-to-cart w-full bg-[#1E3A2F] text-white py-3 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold hover:bg-[#1A1A1A] transition-colors shadow-sm cursor-pointer" 
-                              data-name={producto.nombre} 
-                              data-price={producto.precio} 
-                              data-image={producto.imagen_url || ''}
-                              data-stock={producto.stock}>
-                       Añadir al Carro
-                      </button>
+                      <button class="btn-add-to-cart w-full bg-[#1E3A2F] text-white py-3 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold hover:bg-[#1A1A1A] transition-colors shadow-sm cursor-pointer" data-name={producto.nombre} data-price={producto.precio} data-image={producto.imagen_url || ''} data-stock={producto.stock}>Añadir al Carro</button>
                     ) : (
-                      <div class="w-full bg-gray-100 text-[#1A1A1A]/40 py-3 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold cursor-not-allowed">
-                        Agotado
-                      </div>
+                      <div class="w-full bg-gray-100 text-[#1A1A1A]/40 py-3 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold cursor-not-allowed">Agotado</div>
                     )}
                   </div>
                 </article>
               ))
             )}
           </div>
-
           {totalPages > 1 && (
             <div class="flex justify-center items-center gap-4 mt-12 pt-8">
-              <a href={getPageUrl(Math.max(page - 1, 1))} 
-                 class={`px-5 py-2.5 bg-white border border-[#1A1A1A]/10 rounded-sm text-[10px] font-bold uppercase tracking-widest ${page === 1 ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:border-[#1E3A2F] hover:text-[#1E3A2F] transition-colors'}`}>
-                Anterior
-              </a>
-              <span class="text-[11px] font-medium text-[#1A1A1A]/60 tracking-widest uppercase px-4">
-                Página {page} de {totalPages}
-              </span>
-              <a href={getPageUrl(Math.min(page + 1, totalPages))} 
-                 class={`px-5 py-2.5 bg-white border border-[#1A1A1A]/10 rounded-sm text-[10px] font-bold uppercase tracking-widest ${page === totalPages ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:border-[#1E3A2F] hover:text-[#1E3A2F] transition-colors'}`}>
-                Siguiente
-              </a>
+              <a href={getPageUrl(Math.max(page - 1, 1))} class={`px-5 py-2.5 bg-white border border-[#1A1A1A]/10 rounded-sm text-[10px] font-bold uppercase tracking-widest ${page === 1 ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:border-[#1E3A2F] hover:text-[#1E3A2F] transition-colors'}`}>Anterior</a>
+              <span class="text-[11px] font-medium text-[#1A1A1A]/60 tracking-widest uppercase px-4">Página {page} de {totalPages}</span>
+              <a href={getPageUrl(Math.min(page + 1, totalPages))} class={`px-5 py-2.5 bg-white border border-[#1A1A1A]/10 rounded-sm text-[10px] font-bold uppercase tracking-widest ${page === totalPages ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:border-[#1E3A2F] hover:text-[#1E3A2F] transition-colors'}`}>Siguiente</a>
             </div>
           )}
         </div>
@@ -301,65 +225,40 @@ const getPageUrl = (newPage) => {
 
     <!-- Modal del Carrito -->
     <dialog id="cart-dialog" class="flex-col">
-      <div class="px-8 py-6 border-b border-[#1A1A1A]/10 flex justify-between items-center bg-white flex-shrink-0">
-        <h2 class="text-2xl text-[#1E3A2F] font-medium">Tu Selección</h2>
-        <button id="btn-close-cart" class="text-xs uppercase tracking-widest text-[#1A1A1A]/50 hover:text-[#C17767] transition-all cursor-pointer">
-          Cerrar ✕
-        </button>
-      </div>
+      <div class="px-8 py-6 border-b border-[#1A1A1A]/10 flex justify-between items-center bg-white flex-shrink-0"><h2 class="text-2xl text-[#1E3A2F] font-medium">Tu Selección</h2><button id="btn-close-cart" class="text-xs uppercase tracking-widest text-[#1A1A1A]/50 hover:text-[#C17767] transition-all cursor-pointer">Cerrar ✕</button></div>
       <div id="cart-items-list" class="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-[#F9F8F6]"></div>
       <div class="p-8 border-t border-[#1A1A1A]/10 bg-white flex-shrink-0 shadow-[0_-5px_15px_rgba(0,0,0,0.02)]">
-        <div class="flex justify-between items-center mb-6">
-          <span class="text-xs uppercase tracking-[0.2em] font-medium text-[#1A1A1A]">Subtotal</span>
-          <span id="cart-subtotal" class="font-medium text-2xl text-[#1E3A2F]">$0</span>
-        </div>
-        <button id="btn-pagar" class="w-full bg-[#1E3A2F] text-white py-4 rounded-sm text-xs font-medium uppercase tracking-[0.2em] hover:bg-[#1A1A1A] transition-colors cursor-pointer">
-            Proceder al Pago
-        </button>
+        <div class="flex justify-between items-center mb-6"><span class="text-xs uppercase tracking-[0.2em] font-medium text-[#1A1A1A]">Subtotal</span><span id="cart-subtotal" class="font-medium text-2xl text-[#1E3A2F]">$0</span></div>
+        <button id="btn-pagar" class="w-full bg-[#1E3A2F] text-white py-4 rounded-sm text-xs font-medium uppercase tracking-[0.2em] hover:bg-[#1A1A1A] transition-colors cursor-pointer">Proceder al Pago</button>
       </div>
     </dialog>
 
     <script>
-      // LÓGICA DEL CARRITO 
       const dialog = document.getElementById('cart-dialog');
       const headerCartBtn = document.getElementById('header-cart-btn');
       const cartItemsList = document.getElementById('cart-items-list');
       const cartSubtotal = document.getElementById('cart-subtotal');
       const closeBtn = document.getElementById('btn-close-cart');
-
       if(dialog) dialog.style.display = 'none';
       let cartState = {}; 
 
       function renderCart() {
         if(!cartItemsList) return;
-        const emptyMsgHTML = `<div class="flex h-full items-center justify-center text-xs text-[#1A1A1A]/40 font-medium uppercase tracking-[0.2em]">Tu selección está vacía.</div>`;
         const productNames = Object.keys(cartState);
-
-        let totalItems = 0;
-        let totalPrice = 0;
-        let html = '';
-
+        let totalItems = 0; let totalPrice = 0; let html = '';
         if (productNames.length === 0) {
-          cartItemsList.innerHTML = emptyMsgHTML;
+          cartItemsList.innerHTML = `<div class="flex h-full items-center justify-center text-xs text-[#1A1A1A]/40 font-medium uppercase tracking-[0.2em]">Tu selección está vacía.</div>`;
         } else {
           productNames.forEach(name => {
             const item = cartState[name];
-            totalItems += item.quantity;
-            totalPrice += item.price * item.quantity;
+            totalItems += item.quantity; totalPrice += item.price * item.quantity;
             const priceFormatted = item.price.toLocaleString('es-CL');
-            
-            const imageHTML = item.image ? `<img src="${item.image}" alt="${name}" class="w-full h-full object-cover object-center" />` : `<span class="text-[#1A1A1A]/30 text-[8px] font-medium tracking-widest uppercase">Foto</span>`;
-            
+            const imageHTML = item.image ? `<img src="${item.image}" alt="${name}" style="width: 100%; height: 100%; object-fit: cover; object-position: center;" />` : `<span class="text-[#1A1A1A]/30 text-[8px] font-medium tracking-widest uppercase">Foto</span>`;
             const badgeHTML = item.quantity > 1 ? `<span class="absolute -top-2 -right-2 bg-[#1E3A2F] text-white text-[9px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-md border-2 border-[#F9F8F6] z-10">${item.quantity}</span>` : '';
-            const isAtMaxStock = item.quantity >= item.maxStock;
-            const plusBtnClass = isAtMaxStock ? "text-[#1A1A1A]/20 cursor-not-allowed" : "text-[#1A1A1A]/60 hover:text-[#1A1A1A] transition-colors cursor-pointer";
-
+            const plusBtnClass = item.quantity >= item.maxStock ? "text-[#1A1A1A]/20 cursor-not-allowed" : "text-[#1A1A1A]/60 hover:text-[#1A1A1A] transition-colors cursor-pointer";
             html += `
               <div class="flex gap-4 cart-item bg-white p-4 rounded-md shadow-sm border border-[#1A1A1A]/5">
-                <div class="w-16 h-20 bg-[#F4F1EA] rounded-sm flex-shrink-0 flex items-center justify-center border border-[#1A1A1A]/5 relative overflow-visible">
-                  <div class="w-full h-full overflow-hidden rounded-sm flex items-center justify-center">${imageHTML}</div>
-                  ${badgeHTML}
-                </div>
+                <div class="w-16 h-20 bg-[#F4F1EA] rounded-sm flex-shrink-0 flex items-center justify-center border border-[#1A1A1A]/5 relative overflow-hidden">${imageHTML}${badgeHTML}</div>
                 <div class="flex-1 flex flex-col justify-center py-1">
                   <h4 class="text-[#1A1A1A] font-medium text-sm leading-tight mb-1">${name}</h4>
                   <p class="text-xs text-[#1A1A1A]/60 font-medium mb-3">$${priceFormatted} c/u</p>
@@ -372,8 +271,7 @@ const getPageUrl = (newPage) => {
                     <button class="btn-remove-item w-fit text-left text-[10px] font-medium uppercase tracking-[0.2em] text-[#C17767] hover:text-[#1A1A1A] transition-colors cursor-pointer" data-name="${name}">Remover</button>
                   </div>
                 </div>
-              </div>
-            `;
+              </div>`;
           });
           cartItemsList.innerHTML = html;
         }
@@ -383,57 +281,18 @@ const getPageUrl = (newPage) => {
 
       document.addEventListener('click', (e) => {
         if (e.target && e.target.classList.contains('btn-add-to-cart')) {
-          const name = e.target.getAttribute('data-name');
-          const price = parseInt(e.target.getAttribute('data-price'));
-          const image = e.target.getAttribute('data-image');
-          const maxStock = parseInt(e.target.getAttribute('data-stock'));
-
-          if (cartState[name]) {
-            if (cartState[name].quantity < cartState[name].maxStock) {
-              cartState[name].quantity += 1;
-            }
-          } else {
-            cartState[name] = { price: price, image: image, quantity: 1, maxStock: maxStock };
-          }
-          renderCart();
-          if(dialog) {
-            dialog.style.display = 'flex';
-            dialog.showModal();
-          }
+          const name = e.target.getAttribute('data-name'); const price = parseInt(e.target.getAttribute('data-price')); const image = e.target.getAttribute('data-image'); const maxStock = parseInt(e.target.getAttribute('data-stock'));
+          if (cartState[name]) { if (cartState[name].quantity < cartState[name].maxStock) cartState[name].quantity += 1; } else { cartState[name] = { price, image, quantity: 1, maxStock }; }
+          renderCart(); if(dialog) { dialog.style.display = 'flex'; dialog.showModal(); }
         }
-
-        if (e.target && e.target.classList.contains('btn-increase-qty')) {
-          const name = e.target.getAttribute('data-name');
-          if (cartState[name] && cartState[name].quantity < cartState[name].maxStock) {
-            cartState[name].quantity += 1;
-            renderCart();
-          }
-        }
-
-        if (e.target && e.target.classList.contains('btn-decrease-qty')) {
-          const name = e.target.getAttribute('data-name');
-          if (cartState[name]) {
-            cartState[name].quantity -= 1;
-            if (cartState[name].quantity <= 0) delete cartState[name];
-            renderCart();
-          }
-        }
-
-        if (e.target && e.target.classList.contains('btn-remove-item')) {
-          const name = e.target.getAttribute('data-name');
-          delete cartState[name];
-          renderCart();
-        }
+        if (e.target && e.target.classList.contains('btn-increase-qty')) { const name = e.target.getAttribute('data-name'); if (cartState[name] && cartState[name].quantity < cartState[name].maxStock) { cartState[name].quantity += 1; renderCart(); } }
+        if (e.target && e.target.classList.contains('btn-decrease-qty')) { const name = e.target.getAttribute('data-name'); if (cartState[name]) { cartState[name].quantity -= 1; if (cartState[name].quantity <= 0) delete cartState[name]; renderCart(); } }
+        if (e.target && e.target.classList.contains('btn-remove-item')) { const name = e.target.getAttribute('data-name'); delete cartState[name]; renderCart(); }
       });
-
       if(headerCartBtn) headerCartBtn.addEventListener('click', () => { if(dialog) { dialog.style.display = 'flex'; dialog.showModal(); } });
       if(closeBtn) closeBtn.addEventListener('click', () => { if(dialog) { dialog.close(); dialog.style.display = 'none'; } });
-      if(dialog) dialog.addEventListener('click', (e) => {
-        const rect = dialog.getBoundingClientRect();
-        const isInDialog = (rect.top <= e.clientY && e.clientY <= rect.top + rect.height && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
-        if (!isInDialog) { dialog.close(); dialog.style.display = 'none'; }
-      });
-
+      if(dialog) dialog.addEventListener('click', (e) => { const rect = dialog.getBoundingClientRect(); if (!(rect.top <= e.clientY && e.clientY <= rect.top + rect.height && rect.left <= e.clientX && e.clientX <= rect.left + rect.width)) { dialog.close(); dialog.style.display = 'none'; } });
+      
       renderCart();
 
       const btnPagar = document.getElementById('btn-pagar');
@@ -441,27 +300,16 @@ const getPageUrl = (newPage) => {
         btnPagar.addEventListener('click', async () => {
           const productNames = Object.keys(cartState);
           if(productNames.length === 0) { alert('Agrega al menos un producto al carrito para pagar.'); return; }
-          const textoOriginal = btnPagar.innerText;
-          btnPagar.innerText = 'Conectando...';
-          btnPagar.disabled = true;
+          const textoOriginal = btnPagar.innerText; btnPagar.innerText = 'Conectando...'; btnPagar.disabled = true;
           try {
-            const itemsParaMercadoPago = productNames.map(name => {
-              const item = cartState[name];
-              return { id: "PROD-" + name.replace(/\s+/g, '-').substring(0, 10), title: name, quantity: item.quantity, unit_price: item.price };
-            });
+            const itemsParaMercadoPago = productNames.map(name => ({ id: "PROD-" + name.replace(/\s+/g, '-').substring(0, 10), title: name, quantity: cartState[name].quantity, unit_price: cartState[name].price }));
             const response = await fetch('/api/pagar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: itemsParaMercadoPago }) });
             const data = await response.json();
-            if (data.url) { window.location.href = data.url; } 
-            else { alert('Hubo un error al conectar con Mercado Pago.'); btnPagar.innerText = textoOriginal; btnPagar.disabled = false; }
-          } catch (error) {
-            console.error("Error:", error); alert('Fallo en la comunicación con el servidor.'); btnPagar.innerText = textoOriginal; btnPagar.disabled = false;
-          }
+            if (data.url) { window.location.href = data.url; } else { alert('Hubo un error al conectar con Mercado Pago.'); btnPagar.innerText = textoOriginal; btnPagar.disabled = false; }
+          } catch (error) { console.error("Error:", error); alert('Fallo en la comunicación con el servidor.'); btnPagar.innerText = textoOriginal; btnPagar.disabled = false; }
         });
       }
-      
-      window.addEventListener('pageshow', (event) => {
-        if (event.persisted && btnPagar) { btnPagar.innerText = 'Proceder al Pago'; btnPagar.disabled = false; }
-      });
+      window.addEventListener('pageshow', (event) => { if (event.persisted && btnPagar) { btnPagar.innerText = 'Proceder al Pago'; btnPagar.disabled = false; } });
     </script>
   </body>
 </html>
