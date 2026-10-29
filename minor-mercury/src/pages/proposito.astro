@@ -1,0 +1,52 @@
+---
+import Header from '../components/Header.astro';
+---
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Propósito | Herbium</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <script is:inline src="https://cdn.tailwindcss.com"></script>
+    <script is:inline>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Jost', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  
+  <body class="bg-[#F4F1EA] text-[#1A1A1A] antialiased selection:bg-[#1E3A2F] selection:text-[#F4F1EA] flex flex-col min-h-screen">
+    
+    <Header />
+
+    <main class="flex-1 w-full max-w-3xl mx-auto px-6 py-24 md:py-32">
+      <div class="text-center mb-16">
+        <span class="text-[11px] text-[#C17767] font-medium uppercase tracking-[0.2em] mb-4 block">Nuestra Filosofía</span>
+        <h1 class="text-4xl md:text-5xl text-[#1E3A2F] font-medium leading-tight">Botánica Contemporánea para la Vida Moderna</h1>
+      </div>
+
+      <div class="bg-white p-8 md:p-16 rounded-xl border border-[#1A1A1A]/5 shadow-[0_10px_40px_rgba(0,0,0,0.03)] text-lg text-[#1A1A1A]/80 font-light leading-relaxed space-y-6">
+        <p>
+          En Herbium, creemos que la naturaleza ya formuló las mejores respuestas. Nuestro propósito es reconectar tu rutina diaria con el poder puro y comprobado de la botánica, creando suplementos que no solo nutren, sino que restauran el equilibrio.
+        </p>
+        <p>
+          Nacimos de la necesidad de encontrar claridad en una industria saturada de químicos innecesarios. Cada ingrediente que seleccionamos, desde nuestros adaptógenos hasta nuestros minerales, pasa por un riguroso proceso para garantizar su origen, pureza y máxima absorción.
+        </p>
+        <p class="text-[#1E3A2F] font-medium text-xl pt-6 border-t border-[#1A1A1A]/10 mt-8">
+          No vendemos milagros; formulamos ciencia natural para que tu cuerpo haga lo que mejor sabe hacer: sanar y prosperar.
+        </p>
+      </div>
+    </main>
+
+  </body>
+</html>
