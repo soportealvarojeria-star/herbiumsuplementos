@@ -1,0 +1,53 @@
+---
+import Header from '../components/Header.astro';
+---
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pago Exitoso | Herbium</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <script is:inline src="https://cdn.tailwindcss.com"></script>
+    <script is:inline>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Jost', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  
+  <body class="bg-[#F4F1EA] text-[#1A1A1A] antialiased selection:bg-[#1E3A2F] selection:text-[#F4F1EA] min-h-screen flex flex-col">
+    
+    <Header />
+
+    <main class="flex-1 flex items-center justify-center p-6">
+      <div class="bg-white p-10 md:p-16 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.05)] border border-[#1A1A1A]/5 text-center max-w-lg w-full">
+        <!-- Ícono de Check -->
+        <div class="w-20 h-20 bg-[#1E3A2F]/5 rounded-full flex items-center justify-center mx-auto mb-8">
+          <svg class="w-10 h-10 text-[#1E3A2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"></path>
+          </svg>
+        </div>
+        
+        <h1 class="text-3xl text-[#1E3A2F] font-medium mb-4">¡Pago Exitoso!</h1>
+        <p class="text-[#1A1A1A]/60 mb-10 leading-relaxed font-light">
+          Tu orden ha sido procesada correctamente. En breve prepararemos tus suplementos y te enviaremos un correo con los detalles del envío.
+        </p>
+        
+        <a href="/" class="inline-block w-full bg-[#1E3A2F] text-white py-4 rounded-sm text-xs font-medium uppercase tracking-[0.2em] hover:bg-[#1A1A1A] transition-colors cursor-pointer">
+          Volver a la Tienda
+        </a>
+      </div>
+    </main>
+    
+  </body>
+</html>

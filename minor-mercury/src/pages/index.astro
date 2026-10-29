@@ -181,8 +181,8 @@ if (supabaseUrl && supabaseKey) {
           <span class="text-xs uppercase tracking-[0.2em] font-medium text-[#1A1A1A]">Subtotal</span>
           <span id="cart-subtotal" class="font-medium text-2xl text-[#1E3A2F]">$0</span>
         </div>
-        <button class="w-full bg-[#1E3A2F] text-white py-4 rounded-sm text-xs font-medium uppercase tracking-[0.2em] hover:bg-[#1A1A1A] transition-colors cursor-pointer">
-          Proceder al Pago
+        <button id="btn-pagar" class="w-full bg-[#1E3A2F] text-white py-4 rounded-sm text-xs font-medium uppercase tracking-[0.2em] hover:bg-[#1A1A1A] transition-colors cursor-pointer">
+            Proceder al Pago
         </button>
       </div>
     </dialog>
@@ -400,6 +400,71 @@ if (supabaseUrl && supabaseKey) {
       }
 
       renderCart();
+      // 4. LÓGICA DE PAGO CON MERCADO PAGO
+      const btnPagar = document.getElementById('btn-pagar');
+      
+      if(btnPagar) {
+        btnPagar.addEventListener('click', async () => {
+          // Si el carrito está vacío, no hacemos nada
+          const productNames = Object.keys(cartState);
+          if(productNames.length === 0) {
+            alert('Agrega al menos un producto al carrito para pagar.');
+            return;
+          }
+
+          // Efecto visual de carga
+          const textoOriginal = btnPagar.innerText;
+          btnPagar.innerText = 'Conectando...';
+          btnPagar.disabled = true;
+
+          try {
+            // Transformamos tu cartState al formato exacto de Mercado Pago
+            const itemsParaMercadoPago = productNames.map(name => {
+              const item = cartState[name];
+              return {
+                id: "PROD-" + name.replace(/\s+/g, '-').substring(0, 10),
+                title: name,
+                quantity: item.quantity,
+                unit_price: item.price
+              };
+            });
+
+            // Enviamos los datos a tu archivo api/pagar.js
+            const response = await fetch('/api/pagar', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ items: itemsParaMercadoPago })
+            });
+
+            const data = await response.json();
+
+            // Redirección a Mercado Pago
+            if (data.url) {
+              window.location.href = data.url;
+            } else {
+              alert('Hubo un error al conectar con Mercado Pago.');
+              btnPagar.innerText = textoOriginal;
+              btnPagar.disabled = false;
+            }
+          } catch (error) {
+            console.error("Error de conexión:", error);
+            alert('Fallo en la comunicación con el servidor.');
+            btnPagar.innerText = textoOriginal;
+            btnPagar.disabled = false;
+          }
+        });
+      }
+      // Restaurar el botón si el usuario vuelve atrás en el navegador
+      window.addEventListener('pageshow', (event) => {
+        // event.persisted indica si la página se cargó desde la memoria caché del navegador
+        if (event.persisted) {
+          const btnPagar = document.getElementById('btn-pagar');
+          if(btnPagar) {
+            btnPagar.innerText = 'Proceder al Pago';
+            btnPagar.disabled = false;
+          }
+        }
+      });
     </script>
   </body>
 </html>

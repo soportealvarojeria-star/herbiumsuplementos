@@ -53,53 +53,58 @@
   </div>
 </div>
 
-<script>
-  // Esta es la lógica que conecta el botón con el archivo pagar.js que creaste antes
+<script is:inline>
+  console.log("🔍 1. El motor del carrito se ha cargado en la página.");
+
   const btnPagar = document.getElementById('btn-pagar');
-  
+  console.log("🔍 2. ¿Encontró el botón?:", btnPagar);
+
   if(btnPagar) {
     btnPagar.addEventListener('click', async () => {
-      // 1. Cambiamos el botón para que el usuario sepa que está cargando
-      btnPagar.innerHTML = '<span class="animate-pulse">Procesando conexión...</span>';
+      console.log("🔍 3. ¡Clic detectado! Iniciando la conexión con la API...");
+      
+      const textoOriginal = btnPagar.innerHTML;
+      btnPagar.innerHTML = 'Conectando...';
       btnPagar.disabled = true;
-      btnPagar.classList.add('opacity-80', 'cursor-not-allowed');
 
       try {
-        // 2. Preparamos la información de lo que se va a cobrar
         const carritoActual = {
-          items: [
-            {
-              id: "PROD-001",
-              title: "Cápsulas de Ashwagandha - Herbium",
-              quantity: 1,
-              unit_price: 24990 // Precio sin puntos ni comas
-            }
-          ]
+          items: [{
+            id: "PROD-YACON",
+            title: "Yacón",
+            quantity: 1,
+            unit_price: 7000
+          }]
         };
 
-        // 3. Enviamos los datos a tu ruta secreta en el servidor
+        console.log("🔍 4. Enviando datos a tu servidor seguro:", carritoActual);
+
         const response = await fetch('/api/pagar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(carritoActual)
         });
 
+        console.log("🔍 5. Respuesta del servidor recibida. Status:", response.status);
         const data = await response.json();
+        console.log("🔍 6. Datos devueltos por Mercado Pago:", data);
 
-        // 4. Si Mercado Pago nos devuelve el link seguro, redirigimos al cliente
         if (data.url) {
+          console.log("🔍 7. ¡Link de pago generado! Redirigiendo...");
           window.location.href = data.url;
         } else {
-          alert('Hubo un error al conectar con Mercado Pago.');
-          btnPagar.innerHTML = '<span>Ir al pago seguro</span>';
+          alert('Hubo un error al conectar con Mercado Pago (revisa la consola).');
+          btnPagar.innerHTML = textoOriginal;
           btnPagar.disabled = false;
         }
       } catch (error) {
-        console.error("Error:", error);
+        console.error("🚨 Error crítico de conexión:", error);
         alert('Error de conexión.');
-        btnPagar.innerHTML = '<span>Ir al pago seguro</span>';
+        btnPagar.innerHTML = textoOriginal;
         btnPagar.disabled = false;
       }
     });
+  } else {
+    console.error("🚨 ERROR: No se encontró el botón. Revisa que tenga id='btn-pagar'.");
   }
 </script>
