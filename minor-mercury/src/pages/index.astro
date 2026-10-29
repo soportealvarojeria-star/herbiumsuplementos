@@ -7,6 +7,7 @@ const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || '';
 
 let productos = [];
+let productosCarrusel = [];
 let count = 0;
 let totalPages = 1;
 
@@ -15,8 +16,8 @@ const page = Number(Astro.url.searchParams.get('page')) || 1;
 const categoria = Astro.url.searchParams.get('categoria') || '';
 const orden = Astro.url.searchParams.get('orden') || 'destacados';
 
-// 2. CONFIGURAR LA PAGINACIÓN (8 productos por página)
-const limit = 8;
+// 2. CONFIGURAR LA PAGINACIÓN (9 productos por página para que encaje en 3 columnas)
+const limit = 9;
 const start = (page - 1) * limit;
 const end = start + limit - 1;
 
@@ -24,28 +25,32 @@ const end = start + limit - 1;
 if (supabaseUrl && supabaseKey) {
   const supabase = createClient(supabaseUrl, supabaseKey);
   
-  // Iniciamos la consulta pidiendo el número total de filas ({ count: 'exact' })
+  // --- CONSULTA A: CARRUSEL DESTACADOS ---
+  const { data: carruselData } = await supabase
+    .from('productos')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(8); 
+    
+  if (carruselData) productosCarrusel = carruselData;
+
+  // --- CONSULTA B: CATÁLOGO PAGINADO ---
   let query = supabase.from('productos').select('*', { count: 'exact' });
 
-  // Si hay una categoría seleccionada, filtramos
   if (categoria) {
     query = query.eq('categoria', categoria);
   }
 
-  // Ordenamiento
   if (orden === 'precio-asc') {
     query = query.order('precio', { ascending: true });
   } else if (orden === 'precio-desc') {
     query = query.order('precio', { ascending: false });
   } else {
-    query = query.order('created_at', { ascending: false }); // Destacados o Recientes
+    query = query.order('created_at', { ascending: false }); 
   }
 
-  // Aplicar el límite de la paginación
   query = query.range(start, end);
-
-  // Ejecutamos la consulta a Supabase
-  const { data, count: totalCount, error } = await query;
+  const { data, count: totalCount } = await query;
   
   if (data) {
     productos = data;
@@ -54,12 +59,11 @@ if (supabaseUrl && supabaseKey) {
   }
 }
 
-// Funciones auxiliares para construir los links de los filtros sin perder la página
 const getFilterUrl = (newCategoria, newOrden) => {
   const params = new URLSearchParams();
   if (newCategoria) params.set('categoria', newCategoria);
   if (newOrden && newOrden !== 'destacados') params.set('orden', newOrden);
-  return `/?${params.toString()}#catalogo`; // Mantiene la vista anclada en el catálogo
+  return `/?${params.toString()}#catalogo`; 
 }
 
 const getPageUrl = (newPage) => {
@@ -86,9 +90,7 @@ const getPageUrl = (newPage) => {
       tailwind.config = {
         theme: {
           extend: {
-            fontFamily: {
-              sans: ['Jost', 'sans-serif'],
-            }
+            fontFamily: { sans: ['Jost', 'sans-serif'] }
           }
         }
       }
@@ -116,9 +118,10 @@ const getPageUrl = (newPage) => {
         -moz-appearance: none;
         appearance: none;
       }
-      html {
-        scroll-behavior: smooth;
-      }
+      html { scroll-behavior: smooth; }
+      
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
   </head>
   
@@ -127,127 +130,176 @@ const getPageUrl = (newPage) => {
     <Header />
     <Hero />
 
-    <section id="catalogo" class="w-full bg-white border-t border-[#1A1A1A]/10 py-20">
-      <div class="max-w-[90rem] mx-auto px-6 lg:px-8">
-        
-        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-12 gap-6">
-          <div>
-            <h3 class="text-3xl text-[#1A1A1A] font-medium mb-2">Nuestra Colección</h3>
-            <span class="text-[11px] font-medium uppercase tracking-[0.2em] text-[#1A1A1A]/50">
-              Mostrando {productos.length} de {count} productos
-            </span>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-4 w-full lg:w-auto">
+    <!-- SECCIÓN: CARRUSEL DESTACADOS -->
+    <section class="w-full bg-white pt-16 pb-12 border-t border-[#1A1A1A]/10 overflow-hidden">
+      <div class="max-w-[90rem] mx-auto px-6 lg:px-8 mb-6">
+        <h3 class="text-xl md:text-2xl text-[#1A1A1A] font-medium">Elegidos para ti</h3>
+      </div>
+      
+      <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 px-6 lg:px-8 pb-8 no-scrollbar max-w-[90rem] mx-auto">
+        {productosCarrusel.map((producto) => (
+          <article class="snap-start flex-shrink-0 w-[240px] md:w-[280px] product-card group relative bg-white border border-[#1A1A1A]/10 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
             
-            <!-- Selector Dinámico de Categorías -->
-            <div class="relative">
-              <select onchange="window.location.href=this.value" class="bg-[#F9F8F6] pr-10 pl-5 py-3 rounded-sm border border-[#1A1A1A]/10 hover:border-[#1E3A2F]/50 text-[11px] font-medium uppercase tracking-[0.1em] text-[#1A1A1A] cursor-pointer outline-none transition-colors">
-                <option value={getFilterUrl('', orden)} selected={categoria === ''}>Todas las Categorías</option>
-                <!-- IMPORTANTE: El texto del value ('Adaptógenos') debe ser EXACTAMENTE IGUAL a como está escrito en Supabase -->
-                <option value={getFilterUrl('Adaptógenos', orden)} selected={categoria === 'Adaptógenos'}>Adaptógenos</option>
-                <option value={getFilterUrl('Hongos Funcionales', orden)} selected={categoria === 'Hongos Funcionales'}>Hongos Funcionales</option>
-                <option value={getFilterUrl('Minerales', orden)} selected={categoria === 'Minerales'}>Minerales</option>
-              </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#1A1A1A]/50">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-              </div>
+            <!-- CAJA CARRUSEL: aspect-square para ser compacta, object-cover y object-center para llenar y centrar el frasco -->
+            <div class="w-full aspect-square bg-[#F4F1EA] relative flex items-center justify-center overflow-hidden">
+              {producto.imagen_url ? (
+                <img src={producto.imagen_url} alt={producto.nombre} class="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105" />
+              ) : (
+                <span class="text-[#1A1A1A]/30 text-[10px] font-medium tracking-[0.2em] uppercase text-center">Sin Foto</span>
+              )}
             </div>
-
-            <!-- Selector Dinámico de Ordenamiento -->
-            <div class="relative">
-              <select onchange="window.location.href=this.value" class="bg-[#F9F8F6] pr-10 pl-5 py-3 rounded-sm border border-[#1A1A1A]/10 hover:border-[#1E3A2F]/50 text-[11px] font-medium uppercase tracking-[0.1em] text-[#1A1A1A] cursor-pointer outline-none transition-colors">
-                <option value={getFilterUrl(categoria, 'destacados')} selected={orden === 'destacados'}>Destacados</option>
-                <option value={getFilterUrl(categoria, 'precio-asc')} selected={orden === 'precio-asc'}>Precio: Menor a Mayor</option>
-                <option value={getFilterUrl(categoria, 'precio-desc')} selected={orden === 'precio-desc'}>Precio: Mayor a Menor</option>
-              </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#1A1A1A]/50">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-              </div>
-            </div>
-
-            <!-- Botones de Vista (Intactos) -->
-            <div class="flex gap-1 bg-[#F9F8F6] p-1 rounded-sm border border-[#1A1A1A]/10 ml-auto lg:ml-4">
-              <button id="btn-grid" class="p-2 bg-white shadow-sm rounded-sm text-[#1E3A2F] transition-all cursor-pointer" title="Vista Cuadrícula">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-              </button>
-              <button id="btn-list" class="p-2 text-[#1A1A1A]/40 hover:text-[#1E3A2F] transition-all cursor-pointer" title="Vista Lista">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div id="product-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-          
-          {productos.length === 0 ? (
-            <div class="col-span-full py-20 text-center flex flex-col items-center justify-center">
-              <span class="text-[#1A1A1A]/50 uppercase tracking-widest text-xs font-medium">No se encontraron productos</span>
-              <p class="text-[#1A1A1A]/30 text-sm mt-2">Intenta ajustar los filtros de búsqueda.</p>
-            </div>
-          ) : (
-            productos.map((producto) => (
-              <article class="product-card group relative bg-white border border-[#1A1A1A]/10 rounded-xl overflow-hidden shadow-[0_2px_15px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition-all duration-300 flex flex-col">
-                <div class="card-img-wrap w-full aspect-[4/5] bg-[#F4F1EA] relative flex items-center justify-center overflow-hidden">
-                  {producto.imagen_url ? (
-                    <img src={producto.imagen_url} alt={producto.nombre} class="w-full h-full object-cover mix-blend-multiply transition-transform duration-700 group-hover:scale-105" />
-                  ) : (
-                    <span class="text-[#1A1A1A]/30 text-xs font-medium tracking-[0.2em] uppercase text-center">Sin Foto</span>
-                  )}
-                  
-                  {producto.stock > 0 ? (
-                    <button class="btn-add-to-cart absolute bottom-4 left-4 right-4 bg-[#1E3A2F] text-white py-3 rounded-sm text-center text-[11px] uppercase tracking-[0.2em] font-medium opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-md hover:bg-[#1A1A1A]" 
-                            data-name={producto.nombre} 
-                            data-price={producto.precio} 
-                            data-image={producto.imagen_url || ''}
-                            data-stock={producto.stock}>
-                     Añadir al Carro
-                    </button>
-                  ) : (
-                    <div class="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm text-[#1A1A1A]/40 py-3 rounded-sm text-center text-[11px] uppercase tracking-[0.2em] font-medium shadow-sm border border-[#1A1A1A]/10 cursor-not-allowed">
-                      Agotado
-                    </div>
-                  )}
-                  
+            
+            <div class="p-4 flex flex-col flex-1 text-left border-t border-[#1A1A1A]/5 bg-white">
+              <h4 class="text-sm text-[#1A1A1A] font-medium mb-1 truncate">{producto.nombre}</h4>
+              <span class="text-base text-[#1E3A2F] font-semibold mb-3">${producto.precio.toLocaleString('es-CL')}</span>
+              
+              {producto.stock > 0 ? (
+                <button class="btn-add-to-cart w-full mt-auto bg-white border border-[#1E3A2F] text-[#1E3A2F] py-2.5 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold hover:bg-[#1E3A2F] hover:text-white transition-all cursor-pointer" 
+                        data-name={producto.nombre} 
+                        data-price={producto.precio} 
+                        data-image={producto.imagen_url || ''}
+                        data-stock={producto.stock}>
+                 Agregar
+                </button>
+              ) : (
+                <div class="w-full mt-auto bg-gray-100 text-[#1A1A1A]/40 py-2.5 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold cursor-not-allowed">
+                  Agotado
                 </div>
-                <div class="card-info-wrap p-5 flex flex-col flex-1 text-left border-t border-[#1A1A1A]/5">
-                  <span class="text-[10px] text-[#C17767] uppercase tracking-[0.2em] mb-2 font-medium">{producto.categoria}</span>
-                  <h4 class="text-lg text-[#1A1A1A] font-medium mb-1">{producto.nombre}</h4>
-                  <span class="text-[#1E3A2F] font-semibold mt-auto pt-4">${producto.precio.toLocaleString('es-CL')}</span>
-                </div>
-              </article>
-            ))
-          )}
-
-        </div>
-
-        <!-- CONTROLES DE PAGINACIÓN -->
-        {totalPages > 1 && (
-          <div class="flex justify-center items-center gap-4 mt-16 border-t border-[#1A1A1A]/5 pt-8">
-            <a 
-              href={getPageUrl(Math.max(page - 1, 1))} 
-              class={`px-5 py-2.5 border border-[#1A1A1A]/10 rounded-sm text-xs font-medium uppercase tracking-widest ${page === 1 ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:border-[#1E3A2F] hover:bg-[#1E3A2F] hover:text-white transition-all'}`}
-            >
-              Anterior
-            </a>
-            
-            <span class="text-xs font-medium text-[#1A1A1A]/60 tracking-widest uppercase px-4">
-              Página {page} de {totalPages}
-            </span>
-            
-            <a 
-              href={getPageUrl(Math.min(page + 1, totalPages))} 
-              class={`px-5 py-2.5 border border-[#1A1A1A]/10 rounded-sm text-xs font-medium uppercase tracking-widest ${page === totalPages ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:border-[#1E3A2F] hover:bg-[#1E3A2F] hover:text-white transition-all'}`}
-            >
-              Siguiente
-            </a>
-          </div>
-        )}
-
+              )}
+            </div>
+          </article>
+        ))}
       </div>
     </section>
 
-    <!-- Modal del Carrito (Intacto) -->
+    <!-- SECCIÓN: CATÁLOGO (SIDEBAR + GRID) -->
+    <section id="catalogo" class="w-full bg-[#F9F8F6] py-20 border-t border-[#1A1A1A]/5">
+      <div class="max-w-[90rem] mx-auto px-6 lg:px-8 flex flex-col lg:flex-row gap-10">
+        
+        <aside class="w-full lg:w-1/4 flex flex-col gap-6">
+          <div class="bg-white p-6 rounded-xl border border-[#1A1A1A]/5 shadow-[0_5px_15px_rgba(0,0,0,0.02)]">
+            <h4 class="text-[11px] font-bold uppercase tracking-widest mb-6 text-[#1A1A1A]">Categorías</h4>
+            <ul class="space-y-4">
+              <li>
+                <a href={getFilterUrl('', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === '' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}>
+                  <div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === '' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}>
+                    <div class={`w-1.5 h-1.5 rounded-full ${categoria === '' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div>
+                  </div>
+                  Todas las Categorías
+                </a>
+              </li>
+              <li>
+                <a href={getFilterUrl('Adaptógenos', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === 'Adaptógenos' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}>
+                  <div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === 'Adaptógenos' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}>
+                    <div class={`w-1.5 h-1.5 rounded-full ${categoria === 'Adaptógenos' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div>
+                  </div>
+                  Adaptógenos
+                </a>
+              </li>
+              <li>
+                <a href={getFilterUrl('Hongos Funcionales', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === 'Hongos Funcionales' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}>
+                  <div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === 'Hongos Funcionales' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}>
+                    <div class={`w-1.5 h-1.5 rounded-full ${categoria === 'Hongos Funcionales' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div>
+                  </div>
+                  Hongos Funcionales
+                </a>
+              </li>
+              <li>
+                <a href={getFilterUrl('Minerales', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === 'Minerales' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}>
+                  <div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === 'Minerales' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}>
+                    <div class={`w-1.5 h-1.5 rounded-full ${categoria === 'Minerales' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div>
+                  </div>
+                  Minerales
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-white p-6 rounded-xl border border-[#1A1A1A]/5 shadow-[0_5px_15px_rgba(0,0,0,0.02)]">
+            <h4 class="text-[11px] font-bold uppercase tracking-widest mb-4 text-[#1A1A1A]">Ordenar Por</h4>
+            <div class="relative">
+              <select onchange="window.location.href=this.value" class="w-full bg-[#F9F8F6] pr-10 pl-4 py-3 rounded-sm border border-[#1A1A1A]/10 hover:border-[#1E3A2F]/50 text-[11px] font-medium uppercase tracking-[0.1em] text-[#1A1A1A] cursor-pointer outline-none transition-colors">
+                <option value={getFilterUrl(categoria, 'destacados')} selected={orden === 'destacados'}>Destacados</option>
+                <option value={getFilterUrl(categoria, 'precio-asc')} selected={orden === 'precio-asc'}>Menor Precio</option>
+                <option value={getFilterUrl(categoria, 'precio-desc')} selected={orden === 'precio-desc'}>Mayor Precio</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#1A1A1A]/50">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="w-full lg:w-3/4">
+          <div class="flex justify-between items-center mb-8 pb-4 border-b border-[#1A1A1A]/10">
+            <h3 class="text-xl md:text-2xl text-[#1A1A1A] font-medium">Catálogo</h3>
+            <span class="text-[11px] font-medium uppercase tracking-widest text-[#1A1A1A]/50">
+              Mostrando {productos.length} resultados
+            </span>
+          </div>
+
+          <div id="product-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {productos.length === 0 ? (
+              <div class="col-span-full py-20 text-center flex flex-col items-center justify-center bg-white rounded-xl border border-[#1A1A1A]/5">
+                <span class="text-[#1A1A1A]/50 uppercase tracking-widest text-xs font-medium">No se encontraron productos</span>
+              </div>
+            ) : (
+              productos.map((producto) => (
+                <article class="product-card group relative bg-white border border-[#1A1A1A]/5 rounded-xl overflow-hidden shadow-sm hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)] transition-all duration-300 flex flex-col">
+                  
+                  <!-- CAJA CATÁLOGO: aspect-square para que sea compacta y cuadrada, con object-cover object-center -->
+                  <div class="card-img-wrap w-full aspect-square bg-[#F4F1EA] relative flex items-center justify-center overflow-hidden">
+                    {producto.imagen_url ? (
+                      <img src={producto.imagen_url} alt={producto.nombre} class="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105" />
+                    ) : (
+                      <span class="text-[#1A1A1A]/30 text-xs font-medium tracking-[0.2em] uppercase text-center">Sin Foto</span>
+                    )}
+                  </div>
+                  
+                  <div class="card-info-wrap p-6 flex flex-col flex-1 text-left bg-white">
+                    <span class="text-[10px] text-[#C17767] uppercase tracking-[0.2em] mb-2 font-medium">{producto.categoria}</span>
+                    <h4 class="text-base text-[#1A1A1A] font-medium mb-1 line-clamp-2">{producto.nombre}</h4>
+                    <span class="text-lg text-[#1E3A2F] font-semibold mt-auto pt-3 pb-4">${producto.precio.toLocaleString('es-CL')}</span>
+                    
+                    {producto.stock > 0 ? (
+                      <button class="btn-add-to-cart w-full bg-[#1E3A2F] text-white py-3 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold hover:bg-[#1A1A1A] transition-colors shadow-sm cursor-pointer" 
+                              data-name={producto.nombre} 
+                              data-price={producto.precio} 
+                              data-image={producto.imagen_url || ''}
+                              data-stock={producto.stock}>
+                       Añadir al Carro
+                      </button>
+                    ) : (
+                      <div class="w-full bg-gray-100 text-[#1A1A1A]/40 py-3 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold cursor-not-allowed">
+                        Agotado
+                      </div>
+                    )}
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+
+          {totalPages > 1 && (
+            <div class="flex justify-center items-center gap-4 mt-12 pt-8">
+              <a href={getPageUrl(Math.max(page - 1, 1))} 
+                 class={`px-5 py-2.5 bg-white border border-[#1A1A1A]/10 rounded-sm text-[10px] font-bold uppercase tracking-widest ${page === 1 ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:border-[#1E3A2F] hover:text-[#1E3A2F] transition-colors'}`}>
+                Anterior
+              </a>
+              <span class="text-[11px] font-medium text-[#1A1A1A]/60 tracking-widest uppercase px-4">
+                Página {page} de {totalPages}
+              </span>
+              <a href={getPageUrl(Math.min(page + 1, totalPages))} 
+                 class={`px-5 py-2.5 bg-white border border-[#1A1A1A]/10 rounded-sm text-[10px] font-bold uppercase tracking-widest ${page === totalPages ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:border-[#1E3A2F] hover:text-[#1E3A2F] transition-colors'}`}>
+                Siguiente
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal del Carrito -->
     <dialog id="cart-dialog" class="flex-col">
       <div class="px-8 py-6 border-b border-[#1A1A1A]/10 flex justify-between items-center bg-white flex-shrink-0">
         <h2 class="text-2xl text-[#1E3A2F] font-medium">Tu Selección</h2>
@@ -255,11 +307,7 @@ const getPageUrl = (newPage) => {
           Cerrar ✕
         </button>
       </div>
-
-      <div id="cart-items-list" class="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-[#F9F8F6]">
-        <!-- Los ítems se generarán aquí con Javascript -->
-      </div>
-
+      <div id="cart-items-list" class="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-[#F9F8F6]"></div>
       <div class="p-8 border-t border-[#1A1A1A]/10 bg-white flex-shrink-0 shadow-[0_-5px_15px_rgba(0,0,0,0.02)]">
         <div class="flex justify-between items-center mb-6">
           <span class="text-xs uppercase tracking-[0.2em] font-medium text-[#1A1A1A]">Subtotal</span>
@@ -272,44 +320,7 @@ const getPageUrl = (newPage) => {
     </dialog>
 
     <script>
-      // 1. Lógica de Vistas (Cuadrícula / Lista)
-      const btnGrid = document.getElementById('btn-grid');
-      const btnList = document.getElementById('btn-list');
-      const container = document.getElementById('product-container');
-      
-      if(btnGrid && btnList && container) {
-        btnGrid.addEventListener('click', () => {
-          btnGrid.classList.add('bg-white', 'shadow-sm', 'text-[#1E3A2F]');
-          btnGrid.classList.remove('text-[#1A1A1A]/40');
-          btnList.classList.remove('bg-white', 'shadow-sm', 'text-[#1E3A2F]');
-          btnList.classList.add('text-[#1A1A1A]/40');
-          container.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8';
-          const articles = document.querySelectorAll('.product-card');
-          const imgWraps = document.querySelectorAll('.card-img-wrap');
-          const infoWraps = document.querySelectorAll('.card-info-wrap');
-          articles.forEach(art => art.classList.replace('flex-row', 'flex-col'));
-          articles.forEach(art => art.classList.remove('items-center'));
-          imgWraps.forEach(wrap => wrap.className = 'card-img-wrap w-full aspect-[4/5] bg-[#F4F1EA] relative flex items-center justify-center overflow-hidden');
-          infoWraps.forEach(wrap => wrap.className = 'card-info-wrap p-5 flex flex-col flex-1 text-left border-t border-[#1A1A1A]/5');
-        });
-
-        btnList.addEventListener('click', () => {
-          btnList.classList.add('bg-white', 'shadow-sm', 'text-[#1E3A2F]');
-          btnList.classList.remove('text-[#1A1A1A]/40');
-          btnGrid.classList.remove('bg-white', 'shadow-sm', 'text-[#1E3A2F]');
-          btnGrid.classList.add('text-[#1A1A1A]/40');
-          container.className = 'flex flex-col gap-4 w-full max-w-4xl mx-auto';
-          const articles = document.querySelectorAll('.product-card');
-          const imgWraps = document.querySelectorAll('.card-img-wrap');
-          const infoWraps = document.querySelectorAll('.card-info-wrap');
-          articles.forEach(art => art.classList.replace('flex-col', 'flex-row'));
-          articles.forEach(art => art.classList.add('items-center'));
-          imgWraps.forEach(wrap => wrap.className = 'card-img-wrap w-32 md:w-48 aspect-square bg-[#F4F1EA] relative flex flex-shrink-0 items-center justify-center border-r border-[#1A1A1A]/5 overflow-hidden');
-          infoWraps.forEach(wrap => wrap.className = 'card-info-wrap p-6 md:px-10 flex flex-col flex-1 text-left justify-center');
-        });
-      }
-
-      // 2. LÓGICA DEL CARRITO (Estado, Agrupación, y Cantidades)
+      // LÓGICA DEL CARRITO 
       const dialog = document.getElementById('cart-dialog');
       const headerCartBtn = document.getElementById('header-cart-btn');
       const cartItemsList = document.getElementById('cart-items-list');
@@ -317,13 +328,10 @@ const getPageUrl = (newPage) => {
       const closeBtn = document.getElementById('btn-close-cart');
 
       if(dialog) dialog.style.display = 'none';
-
-      // Memoria del carrito
       let cartState = {}; 
 
       function renderCart() {
         if(!cartItemsList) return;
-
         const emptyMsgHTML = `<div class="flex h-full items-center justify-center text-xs text-[#1A1A1A]/40 font-medium uppercase tracking-[0.2em]">Tu selección está vacía.</div>`;
         const productNames = Object.keys(cartState);
 
@@ -338,45 +346,30 @@ const getPageUrl = (newPage) => {
             const item = cartState[name];
             totalItems += item.quantity;
             totalPrice += item.price * item.quantity;
-            
             const priceFormatted = item.price.toLocaleString('es-CL');
             
-            const imageHTML = item.image 
-              ? `<img src="${item.image}" alt="${name}" class="w-full h-full object-cover mix-blend-multiply" />`
-              : `<span class="text-[#1A1A1A]/30 text-[8px] font-medium tracking-widest uppercase">Foto</span>`;
+            const imageHTML = item.image ? `<img src="${item.image}" alt="${name}" class="w-full h-full object-cover object-center" />` : `<span class="text-[#1A1A1A]/30 text-[8px] font-medium tracking-widest uppercase">Foto</span>`;
             
-            const badgeHTML = item.quantity > 1 
-              ? `<span class="absolute -top-2 -right-2 bg-[#1E3A2F] text-white text-[9px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-md border-2 border-[#F9F8F6] z-10">${item.quantity}</span>` 
-              : '';
-
+            const badgeHTML = item.quantity > 1 ? `<span class="absolute -top-2 -right-2 bg-[#1E3A2F] text-white text-[9px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-md border-2 border-[#F9F8F6] z-10">${item.quantity}</span>` : '';
             const isAtMaxStock = item.quantity >= item.maxStock;
-            const plusBtnClass = isAtMaxStock 
-              ? "text-[#1A1A1A]/20 cursor-not-allowed" 
-              : "text-[#1A1A1A]/60 hover:text-[#1A1A1A] transition-colors cursor-pointer";
+            const plusBtnClass = isAtMaxStock ? "text-[#1A1A1A]/20 cursor-not-allowed" : "text-[#1A1A1A]/60 hover:text-[#1A1A1A] transition-colors cursor-pointer";
 
             html += `
               <div class="flex gap-4 cart-item bg-white p-4 rounded-md shadow-sm border border-[#1A1A1A]/5">
                 <div class="w-16 h-20 bg-[#F4F1EA] rounded-sm flex-shrink-0 flex items-center justify-center border border-[#1A1A1A]/5 relative overflow-visible">
-                  <div class="w-full h-full overflow-hidden rounded-sm flex items-center justify-center">
-                    ${imageHTML}
-                  </div>
+                  <div class="w-full h-full overflow-hidden rounded-sm flex items-center justify-center">${imageHTML}</div>
                   ${badgeHTML}
                 </div>
-                
                 <div class="flex-1 flex flex-col justify-center py-1">
                   <h4 class="text-[#1A1A1A] font-medium text-sm leading-tight mb-1">${name}</h4>
                   <p class="text-xs text-[#1A1A1A]/60 font-medium mb-3">$${priceFormatted} c/u</p>
-                  
                   <div class="flex items-center justify-between mt-auto">
                     <div class="flex items-center border border-[#1A1A1A]/10 bg-[#F9F8F6] rounded-sm shadow-sm">
                       <button class="btn-decrease-qty px-2.5 py-1 text-[#1A1A1A]/60 hover:text-[#C17767] transition-colors cursor-pointer" data-name="${name}">-</button>
                       <span class="text-[11px] font-medium w-5 text-center text-[#1A1A1A]">${item.quantity}</span>
                       <button class="btn-increase-qty px-2.5 py-1 ${plusBtnClass}" data-name="${name}">+</button>
                     </div>
-                    
-                    <button class="btn-remove-item w-fit text-left text-[10px] font-medium uppercase tracking-[0.2em] text-[#C17767] hover:text-[#1A1A1A] transition-colors cursor-pointer" data-name="${name}">
-                      Remover
-                    </button>
+                    <button class="btn-remove-item w-fit text-left text-[10px] font-medium uppercase tracking-[0.2em] text-[#C17767] hover:text-[#1A1A1A] transition-colors cursor-pointer" data-name="${name}">Remover</button>
                   </div>
                 </div>
               </div>
@@ -384,15 +377,11 @@ const getPageUrl = (newPage) => {
           });
           cartItemsList.innerHTML = html;
         }
-
         if (headerCartBtn) headerCartBtn.innerText = `Carrito (${totalItems})`;
         if (cartSubtotal) cartSubtotal.innerText = '$' + totalPrice.toLocaleString('es-CL');
       }
 
-      // 3. Delegación de todos los eventos de clics del carrito
       document.addEventListener('click', (e) => {
-        
-        // EVENTO: Añadir al carro
         if (e.target && e.target.classList.contains('btn-add-to-cart')) {
           const name = e.target.getAttribute('data-name');
           const price = parseInt(e.target.getAttribute('data-price'));
@@ -406,39 +395,30 @@ const getPageUrl = (newPage) => {
           } else {
             cartState[name] = { price: price, image: image, quantity: 1, maxStock: maxStock };
           }
-
           renderCart();
-          
           if(dialog) {
             dialog.style.display = 'flex';
             dialog.showModal();
           }
         }
 
-        // EVENTO: Aumentar cantidad (+)
         if (e.target && e.target.classList.contains('btn-increase-qty')) {
           const name = e.target.getAttribute('data-name');
-          if (cartState[name]) {
-            if (cartState[name].quantity < cartState[name].maxStock) {
-              cartState[name].quantity += 1;
-              renderCart();
-            }
-          }
-        }
-
-        // EVENTO: Disminuir cantidad (-)
-        if (e.target && e.target.classList.contains('btn-decrease-qty')) {
-          const name = e.target.getAttribute('data-name');
-          if (cartState[name]) {
-            cartState[name].quantity -= 1;
-            if (cartState[name].quantity <= 0) {
-              delete cartState[name];
-            }
+          if (cartState[name] && cartState[name].quantity < cartState[name].maxStock) {
+            cartState[name].quantity += 1;
             renderCart();
           }
         }
 
-        // EVENTO: Remover ítem completo
+        if (e.target && e.target.classList.contains('btn-decrease-qty')) {
+          const name = e.target.getAttribute('data-name');
+          if (cartState[name]) {
+            cartState[name].quantity -= 1;
+            if (cartState[name].quantity <= 0) delete cartState[name];
+            renderCart();
+          }
+        }
+
         if (e.target && e.target.classList.contains('btn-remove-item')) {
           const name = e.target.getAttribute('data-name');
           delete cartState[name];
@@ -446,99 +426,41 @@ const getPageUrl = (newPage) => {
         }
       });
 
-      // Controles de la ventana modal
-      if(headerCartBtn) {
-        headerCartBtn.addEventListener('click', () => {
-          if(dialog) {
-            dialog.style.display = 'flex';
-            dialog.showModal();
-          }
-        });
-      }
-
-      if(closeBtn) {
-        closeBtn.addEventListener('click', () => {
-          if(dialog) {
-            dialog.close();
-            dialog.style.display = 'none';
-          }
-        });
-      }
-      
-      if(dialog) {
-        dialog.addEventListener('click', (e) => {
-          const rect = dialog.getBoundingClientRect();
-          const isInDialog = (
-            rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
-            rect.left <= e.clientX && e.clientX <= rect.left + rect.width
-          );
-          if (!isInDialog) {
-              dialog.close();
-              dialog.style.display = 'none';
-          }
-        });
-      }
+      if(headerCartBtn) headerCartBtn.addEventListener('click', () => { if(dialog) { dialog.style.display = 'flex'; dialog.showModal(); } });
+      if(closeBtn) closeBtn.addEventListener('click', () => { if(dialog) { dialog.close(); dialog.style.display = 'none'; } });
+      if(dialog) dialog.addEventListener('click', (e) => {
+        const rect = dialog.getBoundingClientRect();
+        const isInDialog = (rect.top <= e.clientY && e.clientY <= rect.top + rect.height && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+        if (!isInDialog) { dialog.close(); dialog.style.display = 'none'; }
+      });
 
       renderCart();
 
-      // 4. LÓGICA DE PAGO CON MERCADO PAGO
       const btnPagar = document.getElementById('btn-pagar');
-      
       if(btnPagar) {
         btnPagar.addEventListener('click', async () => {
           const productNames = Object.keys(cartState);
-          if(productNames.length === 0) {
-            alert('Agrega al menos un producto al carrito para pagar.');
-            return;
-          }
-
+          if(productNames.length === 0) { alert('Agrega al menos un producto al carrito para pagar.'); return; }
           const textoOriginal = btnPagar.innerText;
           btnPagar.innerText = 'Conectando...';
           btnPagar.disabled = true;
-
           try {
             const itemsParaMercadoPago = productNames.map(name => {
               const item = cartState[name];
-              return {
-                id: "PROD-" + name.replace(/\s+/g, '-').substring(0, 10),
-                title: name,
-                quantity: item.quantity,
-                unit_price: item.price
-              };
+              return { id: "PROD-" + name.replace(/\s+/g, '-').substring(0, 10), title: name, quantity: item.quantity, unit_price: item.price };
             });
-
-            const response = await fetch('/api/pagar', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ items: itemsParaMercadoPago })
-            });
-
+            const response = await fetch('/api/pagar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: itemsParaMercadoPago }) });
             const data = await response.json();
-
-            if (data.url) {
-              window.location.href = data.url;
-            } else {
-              alert('Hubo un error al conectar con Mercado Pago.');
-              btnPagar.innerText = textoOriginal;
-              btnPagar.disabled = false;
-            }
+            if (data.url) { window.location.href = data.url; } 
+            else { alert('Hubo un error al conectar con Mercado Pago.'); btnPagar.innerText = textoOriginal; btnPagar.disabled = false; }
           } catch (error) {
-            console.error("Error de conexión:", error);
-            alert('Fallo en la comunicación con el servidor.');
-            btnPagar.innerText = textoOriginal;
-            btnPagar.disabled = false;
+            console.error("Error:", error); alert('Fallo en la comunicación con el servidor.'); btnPagar.innerText = textoOriginal; btnPagar.disabled = false;
           }
         });
       }
       
       window.addEventListener('pageshow', (event) => {
-        if (event.persisted) {
-          const btnPagar = document.getElementById('btn-pagar');
-          if(btnPagar) {
-            btnPagar.innerText = 'Proceder al Pago';
-            btnPagar.disabled = false;
-          }
-        }
+        if (event.persisted && btnPagar) { btnPagar.innerText = 'Proceder al Pago'; btnPagar.disabled = false; }
       });
     </script>
   </body>
