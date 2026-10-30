@@ -17,9 +17,21 @@ const categoria = Astro.url.searchParams.get('categoria') || '';
 const orden = Astro.url.searchParams.get('orden') || 'destacados';
 
 // 2. CONFIGURAR LA PAGINACIÓN
-const limit = 9;
+const limit = 12; 
 const start = (page - 1) * limit;
 const end = start + limit - 1;
+
+// LAS 8 CATEGORÍAS PRINCIPALES EXTRAÍDAS DE TU JSON
+const categoriasFiltro = [
+  'Botánicos', 
+  'Minerales', 
+  'Vitaminas', 
+  'Fórmulas Complejas', 
+  'Adaptógenos', 
+  'Hongos Funcionales', 
+  'Ácidos Grasos', 
+  'Aceites'
+];
 
 if (supabaseUrl && supabaseKey) {
   const supabase = createClient(supabaseUrl, supabaseKey);
@@ -27,7 +39,7 @@ if (supabaseUrl && supabaseKey) {
   // ALGORITMO CARRUSEL
   const { data: carruselData } = await supabase.from('productos').select('*').order('created_at', { ascending: false }).limit(40); 
   if (carruselData) {
-    const bestSellersKeywords = ['ashwagandha', 'magnesio', 'melena', 'yacón', 'yacon', 'maca', 'colágeno', 'colageno', 'shilajit', 'prost', 'tizana', 'ulgrf'];
+    const bestSellersKeywords = ['ashwagandha', 'magnesio', 'melena', 'yacón', 'omega', 'maca', 'colágeno', 'prost', 'tizana', 'ulgrf'];
     productosCarrusel = carruselData.sort((a, b) => {
       const aEs = bestSellersKeywords.some(kw => a.nombre.toLowerCase().includes(kw));
       const bEs = bestSellersKeywords.some(kw => b.nombre.toLowerCase().includes(kw));
@@ -97,14 +109,13 @@ const getPageUrl = (newPage) => {
     <Header />
     <Hero />
 
-    <!-- CARRUSEL -->
-    <section class="w-full bg-white pt-16 pb-12 border-t border-[#1A1A1A]/10 overflow-hidden">
+    <section class="w-full bg-white pt-12 md:pt-16 pb-8 md:pb-12 border-t border-[#1A1A1A]/10 overflow-hidden">
       <div class="max-w-[90rem] mx-auto px-6 lg:px-8 mb-6">
-        <h3 class="text-xl md:text-2xl text-[#1A1A1A] font-medium">Elegidos para ti</h3>
+        <h3 class="text-lg md:text-2xl text-[#1A1A1A] font-medium">Elegidos para ti</h3>
       </div>
-      <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 px-6 lg:px-8 pb-8 no-scrollbar max-w-[90rem] mx-auto">
+      <div class="flex overflow-x-auto snap-x snap-mandatory gap-3 md:gap-4 px-6 lg:px-8 pb-8 no-scrollbar max-w-[90rem] mx-auto">
         {productosCarrusel.map((producto) => (
-          <article class="snap-start flex-shrink-0 w-[240px] md:w-[280px] product-card group bg-white border border-[#1A1A1A]/10 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
+          <article class="snap-start flex-shrink-0 w-[160px] md:w-[280px] product-card group bg-white border border-[#1A1A1A]/10 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
             
             <div class="relative w-full aspect-square bg-[#F4F1EA] overflow-hidden flex items-center justify-center">
               {producto.imagen_url ? (
@@ -118,13 +129,13 @@ const getPageUrl = (newPage) => {
               )}
             </div>
             
-            <div class="p-4 flex flex-col flex-1 text-left border-t border-[#1A1A1A]/5 bg-white">
-              <h4 class="text-sm text-[#1A1A1A] font-medium mb-1 truncate">{producto.nombre}</h4>
-              <span class="text-base text-[#1E3A2F] font-semibold mb-3">${producto.precio.toLocaleString('es-CL')}</span>
+            <div class="p-3 md:p-4 flex flex-col flex-1 text-left border-t border-[#1A1A1A]/5 bg-white">
+              <h4 class="text-xs md:text-sm text-[#1A1A1A] font-medium mb-1 truncate">{producto.nombre}</h4>
+              <span class="text-sm md:text-base text-[#1E3A2F] font-semibold mb-3">${producto.precio.toLocaleString('es-CL')}</span>
               {producto.stock > 0 ? (
-                <button class="btn-add-to-cart w-full mt-auto bg-white border border-[#1E3A2F] text-[#1E3A2F] py-2.5 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold hover:bg-[#1E3A2F] hover:text-white transition-all cursor-pointer" data-name={producto.nombre} data-price={producto.precio} data-image={producto.imagen_url || ''} data-stock={producto.stock}>Agregar</button>
+                <button class="btn-add-to-cart w-full mt-auto bg-white border border-[#1E3A2F] text-[#1E3A2F] py-2 md:py-2.5 rounded-sm text-center text-[9px] md:text-[10px] uppercase tracking-widest font-semibold hover:bg-[#1E3A2F] hover:text-white transition-all cursor-pointer" data-name={producto.nombre} data-price={producto.precio} data-image={producto.imagen_url || ''} data-stock={producto.stock}>Agregar</button>
               ) : (
-                <div class="w-full mt-auto bg-gray-100 text-[#1A1A1A]/40 py-2.5 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold cursor-not-allowed">Agotado</div>
+                <div class="w-full mt-auto bg-gray-100 text-[#1A1A1A]/40 py-2 md:py-2.5 rounded-sm text-center text-[9px] md:text-[10px] uppercase tracking-widest font-semibold cursor-not-allowed">Agotado</div>
               )}
             </div>
           </article>
@@ -132,22 +143,36 @@ const getPageUrl = (newPage) => {
       </div>
     </section>
 
-    <!-- CATÁLOGO -->
-    <section id="catalogo" class="w-full bg-[#F9F8F6] py-20 border-t border-[#1A1A1A]/5">
-      <div class="max-w-[90rem] mx-auto px-6 lg:px-8 flex flex-col lg:flex-row gap-10">
+    <section id="catalogo" class="w-full bg-[#F9F8F6] py-12 md:py-20 border-t border-[#1A1A1A]/5">
+      <div class="max-w-[90rem] mx-auto px-4 md:px-6 lg:px-8 flex flex-col lg:flex-row gap-8 md:gap-10">
         
-        <aside class="w-full lg:w-1/4 flex flex-col gap-6">
-          <div class="bg-white p-6 rounded-xl border border-[#1A1A1A]/5 shadow-[0_5px_15px_rgba(0,0,0,0.02)]">
-            <h4 class="text-[11px] font-bold uppercase tracking-widest mb-6 text-[#1A1A1A]">Categorías</h4>
-            <ul class="space-y-4">
-              <li><a href={getFilterUrl('', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === '' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}><div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === '' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}><div class={`w-1.5 h-1.5 rounded-full ${categoria === '' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div></div>Todas las Categorías</a></li>
-              <li><a href={getFilterUrl('Adaptógenos', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === 'Adaptógenos' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}><div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === 'Adaptógenos' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}><div class={`w-1.5 h-1.5 rounded-full ${categoria === 'Adaptógenos' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div></div>Adaptógenos</a></li>
-              <li><a href={getFilterUrl('Hongos Funcionales', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === 'Hongos Funcionales' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}><div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === 'Hongos Funcionales' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}><div class={`w-1.5 h-1.5 rounded-full ${categoria === 'Hongos Funcionales' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div></div>Hongos Funcionales</a></li>
-              <li><a href={getFilterUrl('Minerales', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === 'Minerales' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}><div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === 'Minerales' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}><div class={`w-1.5 h-1.5 rounded-full ${categoria === 'Minerales' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div></div>Minerales</a></li>
+        <aside class="w-full lg:w-1/4 flex flex-col gap-4 md:gap-6">
+          <div class="bg-white p-5 md:p-6 rounded-xl border border-[#1A1A1A]/5 shadow-[0_5px_15px_rgba(0,0,0,0.02)]">
+            <h4 class="text-[10px] md:text-[11px] font-bold uppercase tracking-widest mb-5 md:mb-6 text-[#1A1A1A]">Categorías</h4>
+            <ul class="space-y-3 md:space-y-4">
+              <li>
+                <a href={getFilterUrl('', orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === '' ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}>
+                  <div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === '' ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}>
+                    <div class={`w-1.5 h-1.5 rounded-full ${categoria === '' ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div>
+                  </div>
+                  Todas las Categorías
+                </a>
+              </li>
+              {categoriasFiltro.map(cat => (
+                <li>
+                  <a href={getFilterUrl(cat, orden)} class={`flex items-center gap-3 text-sm transition-colors ${categoria === cat ? 'text-[#1E3A2F] font-medium' : 'text-[#1A1A1A]/60 hover:text-[#1E3A2F]'}`}>
+                    <div class={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${categoria === cat ? 'border-[#1E3A2F]' : 'border-[#1A1A1A]/20'}`}>
+                      <div class={`w-1.5 h-1.5 rounded-full ${categoria === cat ? 'bg-[#1E3A2F]' : 'bg-transparent'}`}></div>
+                    </div>
+                    {cat}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
-          <div class="bg-white p-6 rounded-xl border border-[#1A1A1A]/5 shadow-[0_5px_15px_rgba(0,0,0,0.02)]">
-            <h4 class="text-[11px] font-bold uppercase tracking-widest mb-4 text-[#1A1A1A]">Ordenar Por</h4>
+
+          <div class="bg-white p-5 md:p-6 rounded-xl border border-[#1A1A1A]/5 shadow-[0_5px_15px_rgba(0,0,0,0.02)]">
+            <h4 class="text-[10px] md:text-[11px] font-bold uppercase tracking-widest mb-4 text-[#1A1A1A]">Ordenar Por</h4>
             <div class="relative">
               <select onchange="window.location.href=this.value" class="w-full bg-[#F9F8F6] pr-10 pl-4 py-3 rounded-sm border border-[#1A1A1A]/10 hover:border-[#1E3A2F]/50 text-[11px] font-medium uppercase tracking-[0.1em] text-[#1A1A1A] cursor-pointer outline-none transition-colors">
                 <option value={getFilterUrl(categoria, 'destacados')} selected={orden === 'destacados'}>Destacados</option>
@@ -160,12 +185,12 @@ const getPageUrl = (newPage) => {
         </aside>
 
         <div class="w-full lg:w-3/4">
-          <div class="flex justify-between items-center mb-8 pb-4 border-b border-[#1A1A1A]/10">
+          <div class="flex justify-between items-center mb-6 md:mb-8 pb-4 border-b border-[#1A1A1A]/10">
             <h3 class="text-xl md:text-2xl text-[#1A1A1A] font-medium">Catálogo</h3>
-            <span class="text-[11px] font-medium uppercase tracking-widest text-[#1A1A1A]/50">Mostrando {productos.length} resultados</span>
+            <span class="text-[10px] md:text-[11px] font-medium uppercase tracking-widest text-[#1A1A1A]/50">Mostrando {productos.length} resultados</span>
           </div>
 
-          <div id="product-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <div id="product-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 md:gap-8">
             {productos.length === 0 ? (
               <div class="col-span-full py-20 text-center flex flex-col items-center justify-center bg-white rounded-xl border border-[#1A1A1A]/5"><span class="text-[#1A1A1A]/50 uppercase tracking-widest text-xs font-medium">No se encontraron productos</span></div>
             ) : (
@@ -180,18 +205,18 @@ const getPageUrl = (newPage) => {
                         class="absolute inset-0 w-full h-full object-cover object-center scale-[1.25] lg:scale-[1.80] transition-transform duration-700 group-hover:scale-[1.35] lg:group-hover:scale-[1.90]" 
                       />
                     ) : (
-                      <span class="absolute inset-0 flex items-center justify-center text-[#1A1A1A]/30 text-xs font-medium tracking-[0.2em] uppercase text-center">Sin Foto</span>
+                      <span class="absolute inset-0 flex items-center justify-center text-[#1A1A1A]/30 text-[10px] font-medium tracking-[0.2em] uppercase text-center">Sin Foto</span>
                     )}
                   </div>
                   
-                  <div class="card-info-wrap p-6 flex flex-col flex-1 text-left bg-white">
-                    <span class="text-[10px] text-[#C17767] uppercase tracking-[0.2em] mb-2 font-medium">{producto.categoria}</span>
-                    <h4 class="text-base text-[#1A1A1A] font-medium mb-1 line-clamp-2">{producto.nombre}</h4>
-                    <span class="text-lg text-[#1E3A2F] font-semibold mt-auto pt-3 pb-4">${producto.precio.toLocaleString('es-CL')}</span>
+                  <div class="card-info-wrap p-3 md:p-6 flex flex-col flex-1 text-left bg-white">
+                    <span class="text-[8px] md:text-[10px] text-[#C17767] uppercase tracking-[0.2em] mb-1 md:mb-2 font-medium truncate">{producto.categoria}</span>
+                    <h4 class="text-xs md:text-base text-[#1A1A1A] font-medium mb-1 line-clamp-2 leading-snug">{producto.nombre}</h4>
+                    <span class="text-sm md:text-lg text-[#1E3A2F] font-semibold mt-auto pt-2 md:pt-3 pb-3 md:pb-4">${producto.precio.toLocaleString('es-CL')}</span>
                     {producto.stock > 0 ? (
-                      <button class="btn-add-to-cart w-full bg-[#1E3A2F] text-white py-3 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold hover:bg-[#1A1A1A] transition-colors shadow-sm cursor-pointer" data-name={producto.nombre} data-price={producto.precio} data-image={producto.imagen_url || ''} data-stock={producto.stock}>Añadir al Carro</button>
+                      <button class="btn-add-to-cart w-full bg-[#1E3A2F] text-white py-2.5 md:py-3 rounded-sm text-center text-[9px] md:text-[10px] uppercase tracking-widest font-semibold hover:bg-[#1A1A1A] transition-colors shadow-sm cursor-pointer" data-name={producto.nombre} data-price={producto.precio} data-image={producto.imagen_url || ''} data-stock={producto.stock}>Añadir</button>
                     ) : (
-                      <div class="w-full bg-gray-100 text-[#1A1A1A]/40 py-3 rounded-sm text-center text-[10px] uppercase tracking-widest font-semibold cursor-not-allowed">Agotado</div>
+                      <div class="w-full bg-gray-100 text-[#1A1A1A]/40 py-2.5 md:py-3 rounded-sm text-center text-[9px] md:text-[10px] uppercase tracking-widest font-semibold cursor-not-allowed">Agotado</div>
                     )}
                   </div>
                 </article>
@@ -199,23 +224,22 @@ const getPageUrl = (newPage) => {
             )}
           </div>
           {totalPages > 1 && (
-            <div class="flex justify-center items-center gap-4 mt-12 pt-8">
-              <a href={getPageUrl(Math.max(page - 1, 1))} class={`px-5 py-2.5 bg-white border border-[#1A1A1A]/10 rounded-sm text-[10px] font-bold uppercase tracking-widest ${page === 1 ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:border-[#1E3A2F] hover:text-[#1E3A2F] transition-colors'}`}>Anterior</a>
-              <span class="text-[11px] font-medium text-[#1A1A1A]/60 tracking-widest uppercase px-4">Página {page} de {totalPages}</span>
-              <a href={getPageUrl(Math.min(page + 1, totalPages))} class={`px-5 py-2.5 bg-white border border-[#1A1A1A]/10 rounded-sm text-[10px] font-bold uppercase tracking-widest ${page === totalPages ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:border-[#1E3A2F] hover:text-[#1E3A2F] transition-colors'}`}>Siguiente</a>
+            <div class="flex justify-center items-center gap-2 md:gap-4 mt-8 md:mt-12 pt-8">
+              <a href={getPageUrl(Math.max(page - 1, 1))} class={`px-4 md:px-5 py-2 md:py-2.5 bg-white border border-[#1A1A1A]/10 rounded-sm text-[9px] md:text-[10px] font-bold uppercase tracking-widest ${page === 1 ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:border-[#1E3A2F] hover:text-[#1E3A2F] transition-colors'}`}>Anterior</a>
+              <span class="text-[9px] md:text-[11px] font-medium text-[#1A1A1A]/60 tracking-widest uppercase px-2 md:px-4">Página {page} de {totalPages}</span>
+              <a href={getPageUrl(Math.min(page + 1, totalPages))} class={`px-4 md:px-5 py-2 md:py-2.5 bg-white border border-[#1A1A1A]/10 rounded-sm text-[9px] md:text-[10px] font-bold uppercase tracking-widest ${page === totalPages ? 'opacity-30 cursor-not-allowed pointer-events-none' : 'hover:border-[#1E3A2F] hover:text-[#1E3A2F] transition-colors'}`}>Siguiente</a>
             </div>
           )}
         </div>
       </div>
     </section>
 
-    <!-- Modal del Carrito -->
     <dialog id="cart-dialog" class="flex-col">
-      <div class="px-8 py-6 border-b border-[#1A1A1A]/10 flex justify-between items-center bg-white flex-shrink-0"><h2 class="text-2xl text-[#1E3A2F] font-medium">Tu Selección</h2><button id="btn-close-cart" class="text-xs uppercase tracking-widest text-[#1A1A1A]/50 hover:text-[#C17767] transition-all cursor-pointer">Cerrar ✕</button></div>
-      <div id="cart-items-list" class="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-[#F9F8F6]"></div>
-      <div class="p-8 border-t border-[#1A1A1A]/10 bg-white flex-shrink-0 shadow-[0_-5px_15px_rgba(0,0,0,0.02)]">
-        <div class="flex justify-between items-center mb-6"><span class="text-xs uppercase tracking-[0.2em] font-medium text-[#1A1A1A]">Subtotal</span><span id="cart-subtotal" class="font-medium text-2xl text-[#1E3A2F]">$0</span></div>
-        <button id="btn-pagar" class="w-full bg-[#1E3A2F] text-white py-4 rounded-sm text-xs font-medium uppercase tracking-[0.2em] hover:bg-[#1A1A1A] transition-colors cursor-pointer">Proceder al Pago</button>
+      <div class="px-6 md:px-8 py-5 md:py-6 border-b border-[#1A1A1A]/10 flex justify-between items-center bg-white flex-shrink-0"><h2 class="text-xl md:text-2xl text-[#1E3A2F] font-medium">Tu Selección</h2><button id="btn-close-cart" class="text-[10px] md:text-xs uppercase tracking-widest text-[#1A1A1A]/50 hover:text-[#C17767] transition-all cursor-pointer">Cerrar ✕</button></div>
+      <div id="cart-items-list" class="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col gap-4 md:gap-6 bg-[#F9F8F6]"></div>
+      <div class="p-6 md:p-8 border-t border-[#1A1A1A]/10 bg-white flex-shrink-0 shadow-[0_-5px_15px_rgba(0,0,0,0.02)]">
+        <div class="flex justify-between items-center mb-4 md:mb-6"><span class="text-[10px] md:text-xs uppercase tracking-[0.2em] font-medium text-[#1A1A1A]">Subtotal</span><span id="cart-subtotal" class="font-medium text-xl md:text-2xl text-[#1E3A2F]">$0</span></div>
+        <button id="btn-pagar" class="w-full bg-[#1E3A2F] text-white py-3 md:py-4 rounded-sm text-[10px] md:text-xs font-medium uppercase tracking-[0.2em] hover:bg-[#1A1A1A] transition-colors cursor-pointer">Proceder al Pago</button>
       </div>
     </dialog>
 
@@ -243,18 +267,18 @@ const getPageUrl = (newPage) => {
             const badgeHTML = item.quantity > 1 ? `<span class="absolute -top-2 -right-2 bg-[#1E3A2F] text-white text-[9px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-md border-2 border-[#F9F8F6] z-10">${item.quantity}</span>` : '';
             const plusBtnClass = item.quantity >= item.maxStock ? "text-[#1A1A1A]/20 cursor-not-allowed" : "text-[#1A1A1A]/60 hover:text-[#1A1A1A] transition-colors cursor-pointer";
             html += `
-              <div class="flex gap-4 cart-item bg-white p-4 rounded-md shadow-sm border border-[#1A1A1A]/5">
-                <div class="w-16 h-20 bg-[#F4F1EA] rounded-sm flex-shrink-0 flex items-center justify-center border border-[#1A1A1A]/5 relative overflow-hidden">${imageHTML}${badgeHTML}</div>
+              <div class="flex gap-3 md:gap-4 cart-item bg-white p-3 md:p-4 rounded-md shadow-sm border border-[#1A1A1A]/5">
+                <div class="w-14 h-16 md:w-16 md:h-20 bg-[#F4F1EA] rounded-sm flex-shrink-0 flex items-center justify-center border border-[#1A1A1A]/5 relative overflow-hidden">${imageHTML}${badgeHTML}</div>
                 <div class="flex-1 flex flex-col justify-center py-1">
-                  <h4 class="text-[#1A1A1A] font-medium text-sm leading-tight mb-1">${name}</h4>
-                  <p class="text-xs text-[#1A1A1A]/60 font-medium mb-3">$${priceFormatted} c/u</p>
+                  <h4 class="text-[#1A1A1A] font-medium text-xs md:text-sm leading-tight mb-1">${name}</h4>
+                  <p class="text-[10px] md:text-xs text-[#1A1A1A]/60 font-medium mb-2 md:mb-3">$${priceFormatted} c/u</p>
                   <div class="flex items-center justify-between mt-auto">
                     <div class="flex items-center border border-[#1A1A1A]/10 bg-[#F9F8F6] rounded-sm shadow-sm">
-                      <button class="btn-decrease-qty px-2.5 py-1 text-[#1A1A1A]/60 hover:text-[#C17767] transition-colors cursor-pointer" data-name="${name}">-</button>
-                      <span class="text-[11px] font-medium w-5 text-center text-[#1A1A1A]">${item.quantity}</span>
-                      <button class="btn-increase-qty px-2.5 py-1 ${plusBtnClass}" data-name="${name}">+</button>
+                      <button class="btn-decrease-qty px-2 py-1 text-[#1A1A1A]/60 hover:text-[#C17767] transition-colors cursor-pointer" data-name="${name}">-</button>
+                      <span class="text-[10px] md:text-[11px] font-medium w-4 md:w-5 text-center text-[#1A1A1A]">${item.quantity}</span>
+                      <button class="btn-increase-qty px-2 py-1 ${plusBtnClass}" data-name="${name}">+</button>
                     </div>
-                    <button class="btn-remove-item w-fit text-left text-[10px] font-medium uppercase tracking-[0.2em] text-[#C17767] hover:text-[#1A1A1A] transition-colors cursor-pointer" data-name="${name}">Remover</button>
+                    <button class="btn-remove-item w-fit text-left text-[9px] md:text-[10px] font-medium uppercase tracking-[0.2em] text-[#C17767] hover:text-[#1A1A1A] transition-colors cursor-pointer" data-name="${name}">Remover</button>
                   </div>
                 </div>
               </div>`;
