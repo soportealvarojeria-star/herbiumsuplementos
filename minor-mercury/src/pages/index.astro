@@ -111,7 +111,7 @@ const getPageUrl = (newPage) => {
                 <img 
                   src={producto.imagen_url} 
                   alt={producto.nombre} 
-                  class="absolute inset-0 w-full h-full object-cover object-center scale-[1.80] transition-transform duration-700 group-hover:scale-[1.90]" 
+                  class="absolute inset-0 w-full h-full object-cover object-center scale-[1.25] lg:scale-[1.80] transition-transform duration-700 group-hover:scale-[1.35] lg:group-hover:scale-[1.90]" 
                 />
               ) : (
                 <span class="absolute inset-0 flex items-center justify-center text-[#1A1A1A]/30 text-[10px] font-medium tracking-[0.2em] uppercase text-center">Sin Foto</span>
@@ -177,7 +177,7 @@ const getPageUrl = (newPage) => {
                       <img 
                         src={producto.imagen_url} 
                         alt={producto.nombre} 
-                        class="absolute inset-0 w-full h-full object-cover object-center scale-[1.80] transition-transform duration-700 group-hover:scale-[1.90]" 
+                        class="absolute inset-0 w-full h-full object-cover object-center scale-[1.25] lg:scale-[1.80] transition-transform duration-700 group-hover:scale-[1.35] lg:group-hover:scale-[1.90]" 
                       />
                     ) : (
                       <span class="absolute inset-0 flex items-center justify-center text-[#1A1A1A]/30 text-xs font-medium tracking-[0.2em] uppercase text-center">Sin Foto</span>
@@ -239,7 +239,7 @@ const getPageUrl = (newPage) => {
             const item = cartState[name];
             totalItems += item.quantity; totalPrice += item.price * item.quantity;
             const priceFormatted = item.price.toLocaleString('es-CL');
-            const imageHTML = item.image ? `<img src="${item.image}" alt="${name}" class="absolute inset-0 w-full h-full object-cover object-center scale-[1.80]" />` : `<span class="text-[#1A1A1A]/30 text-[8px] font-medium tracking-widest uppercase">Foto</span>`;
+            const imageHTML = item.image ? `<img src="${item.image}" alt="${name}" class="absolute inset-0 w-full h-full object-cover object-center scale-[1.25] lg:scale-[1.80]" />` : `<span class="text-[#1A1A1A]/30 text-[8px] font-medium tracking-widest uppercase">Foto</span>`;
             const badgeHTML = item.quantity > 1 ? `<span class="absolute -top-2 -right-2 bg-[#1E3A2F] text-white text-[9px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-md border-2 border-[#F9F8F6] z-10">${item.quantity}</span>` : '';
             const plusBtnClass = item.quantity >= item.maxStock ? "text-[#1A1A1A]/20 cursor-not-allowed" : "text-[#1A1A1A]/60 hover:text-[#1A1A1A] transition-colors cursor-pointer";
             html += `
